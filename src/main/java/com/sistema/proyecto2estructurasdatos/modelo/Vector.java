@@ -150,4 +150,15 @@ public class Vector implements Iterable<Double> {
             return datos[indiceActual++];
         }
     }
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder("[");
+        for (int i = 0; i < tamanio; i++) {
+            sb.append(String.format("%.4f", datos[i]));
+            if (i < tamanio - 1) sb.append(", ");
+        }
+        sb.append("]");
+        return sb.toString();
+    }
 }
