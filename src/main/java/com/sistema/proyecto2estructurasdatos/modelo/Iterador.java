@@ -5,5 +5,5 @@ package com.sistema.proyecto2estructurasdatos.modelo;
 // Permite recorrer colecciones de forma secuencial
 public interface Iterador<T> {
     boolean tieneSiguiente();
-    T sig();
+    T siguiente();
 }
