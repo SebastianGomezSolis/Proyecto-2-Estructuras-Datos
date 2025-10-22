@@ -1,5 +1,5 @@
 package com.sistema.proyecto2estructurasdatos;
-
+/*
 import com.sistema.proyecto2estructurasdatos.algoritmos.*;
 import com.sistema.proyecto2estructurasdatos.modelo.Vector;
 
@@ -70,5 +70,30 @@ public class Main {
         System.out.println("Factory Distancia creó: " + distFactory.getNombre());
 
         System.out.println("\n✅ Todas las pruebas completadas exitosamente!");
+    }
+}*/
+
+
+import javafx.application.Application;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Scene;
+import javafx.scene.image.Image;
+import javafx.stage.Stage;
+
+import java.io.IOException;
+
+public class Main extends Application {
+    @Override
+    public void start(Stage stage) throws IOException {
+        FXMLLoader fxmlLoader = new FXMLLoader(Main.class.getResource("/com.sistema.sistemaprescripciondespachorecetas/view/Ventana.fxml"));
+        Scene scene = new Scene(fxmlLoader.load(), 600, 400);
+        stage.setTitle("Dendograma");
+        stage.getIcons().add(new Image(getClass().getResourceAsStream("/com.sistema.sistemaprescripciondespachorecetas/images/Ventana.png")));
+        stage.setScene(scene);
+        stage.show();
+    }
+
+    public static void main(String[] args) {
+        launch();
     }
 }
