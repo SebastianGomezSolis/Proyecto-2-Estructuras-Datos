@@ -1,7 +1,7 @@
 package com.sistema.proyecto2estructurasdatos.controller;
 
 import com.sistema.proyecto2estructurasdatos.algoritmos.*;
-import com.sistema.proyecto2estructurasdatos.configuracion.ConfiguracionSingleton;
+import com.sistema.proyecto2estructurasdatos.modelo.*;
 import javafx.fxml.FXML;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
@@ -201,7 +201,7 @@ public class VentanaController {
             progressBar.setProgress(0.3);
 
             // Ejecutar algoritmo
-            AlgoritmoClusteringJerarquico algoritmo = new AlgoritmoClusteringJerarquico(
+            AlgoritmoClustering algoritmo = new AlgoritmoClustering(
                     normalizacion, distancia, pesos, ignoradas
             );
 
@@ -355,7 +355,7 @@ public class VentanaController {
         double margen = 50;
 
         // Dibujar árbol
-        Map<ArbolBinario.Nodo, Double> posicionesX = new HashMap<>();
+        Map<ArbolBinario.NodoArbol, Double> posicionesX = new HashMap<>();
         asignarPosicionesX(dendrograma.getRaiz(), posicionesX, 0, numHojas, espacioHorizontal);
 
         // Dibujar líneas del árbol
@@ -382,10 +382,10 @@ public class VentanaController {
     /**
      * Obtiene todas las hojas del árbol - O(n)
      */
-    private void obtenerHojas(ArbolBinario.Nodo nodo, Lista<ArbolBinario.Nodo> hojas) {
+    private void obtenerHojas(ArbolBinario nodo, Lista<ArbolBinario> hojas) {
         if (nodo == null) return;
 
-        if (nodo.esHoja()) {
+        if (nodo.getRaiz().esHoja()) {
             hojas.agregar(nodo);
         } else {
             obtenerHojas(nodo.getIzquierdo(), hojas);
