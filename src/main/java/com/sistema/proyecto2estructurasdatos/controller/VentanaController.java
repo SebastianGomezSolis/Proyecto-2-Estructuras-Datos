@@ -186,7 +186,7 @@ public class VentanaController {
         return ignoradas;
     }
 
-    private void dibujarDendrograma() {
+    /*private void dibujarDendrograma() {
         if (dendrograma == null || dendrograma.getRaiz() == null) return;
 
         GraphicsContext gc = canvasDendrograma.getGraphicsContext2D();
@@ -226,6 +226,116 @@ public class VentanaController {
             gc.rotate(-45);
             gc.fillText(hoja.getEtiqueta(), 0, 0);
             gc.restore();
+        }
+    }
+*/
+    private void dibujarDendrograma() {
+        if (dendrograma == null || dendrograma.getRaiz() == null) return;
+
+        GraphicsContext gc = canvasDendrograma.getGraphicsContext2D();
+        double width = canvasDendrograma.getWidth();
+        double height = canvasDendrograma.getHeight();
+
+        // Fondo
+        gc.setFill(Color.web("#fafafa"));
+        gc.fillRect(0, 0, width, height);
+
+        // Obtener hojas
+        Lista<NodoArbol> hojas = new Lista<>();
+        obtenerHojas(dendrograma.getRaiz(), hojas);
+        int numHojas = hojas.tamanio();
+        if (numHojas == 0) return;
+
+        // Parámetros de dibujo
+        double margen = 80; // margen lateral más amplio
+        double alturaUtil = height - (2 * margen);
+        double espacioHorizontal = (width - 2 * margen) / (numHojas - 1);
+
+        double distanciaMaxima = dendrograma.getRaiz().getDistancia();
+        double factorEscala = distanciaMaxima > 0 ? (alturaUtil / (distanciaMaxima * 1.2)) : 50;
+
+        // Calcular posiciones X de las hojas
+        Map<NodoArbol, Double> posicionesX = new HashMap<>();
+        asignarPosicionesXConMargen(dendrograma.getRaiz(), posicionesX, 0, numHojas, espacioHorizontal, margen);
+
+        // Configuración de línea
+        gc.setStroke(Color.web("#00796B"));
+        gc.setLineWidth(2.0);
+
+        // Dibujar árbol
+        dibujarNodoMejorado(gc, dendrograma.getRaiz(), posicionesX, height - margen, height - margen, factorEscala, 0);
+
+        // Dibujar etiquetas
+        gc.setFill(Color.web("#004D40"));
+        gc.setFont(javafx.scene.text.Font.font("Arial", 11));
+
+        double angulo = numHojas > 15 ? -90 : -45; // rotación adaptativa
+        double separacion = numHojas > 15 ? 30 : 20; // distancia respecto al eje
+
+        for (int i = 0; i < hojas.tamanio(); i++) {
+            NodoArbol hoja = hojas.obtener(i);
+            double x = posicionesX.get(hoja);
+
+            gc.save();
+            gc.translate(x, height - margen + separacion);
+            gc.rotate(angulo);
+            gc.fillText(hoja.getEtiqueta(), 0, 0);
+            gc.restore();
+        }
+    }
+
+    /** Asigna posiciones X considerando un margen lateral */
+    private int asignarPosicionesXConMargen(NodoArbol nodo, Map<NodoArbol, Double> posiciones,
+                                            int contadorHojas, int totalHojas, double espacioHorizontal, double margen) {
+        if (nodo == null) return contadorHojas;
+
+        if (nodo.esHoja()) {
+            posiciones.put(nodo, margen + contadorHojas * espacioHorizontal);
+            return contadorHojas + 1;
+        }
+
+        int contador = asignarPosicionesXConMargen(nodo.getIzquierdo(), posiciones, contadorHojas, totalHojas, espacioHorizontal, margen);
+        contador = asignarPosicionesXConMargen(nodo.getDerecho(), posiciones, contador, totalHojas, espacioHorizontal, margen);
+
+        double xIzq = posiciones.getOrDefault(nodo.getIzquierdo(), 0.0);
+        double xDer = posiciones.getOrDefault(nodo.getDerecho(), 0.0);
+        posiciones.put(nodo, (xIzq + xDer) / 2);
+
+        return contador;
+    }
+
+    /** Dibuja el dendrograma con colores por nivel */
+    private void dibujarNodoMejorado(GraphicsContext gc, NodoArbol nodo,
+                                     Map<NodoArbol, Double> posiciones,
+                                     double y, double yBase, double factorEscala, int nivel) {
+        if (nodo == null) return;
+
+        double x = posiciones.get(nodo);
+        double yNodo = yBase - (nodo.getDistancia() * factorEscala);
+
+        Color[] colores = {
+                Color.web("#004D40"),
+                Color.web("#00796B"),
+                Color.web("#009688"),
+                Color.web("#26A69A"),
+                Color.web("#4DB6AC")
+        };
+        gc.setStroke(colores[nivel % colores.length]);
+
+        if (!nodo.esHoja()) {
+            gc.strokeLine(x, yNodo, x, y);
+
+            if (nodo.getIzquierdo() != null) {
+                double xIzq = posiciones.get(nodo.getIzquierdo());
+                gc.strokeLine(x, yNodo, xIzq, yNodo);
+                dibujarNodoMejorado(gc, nodo.getIzquierdo(), posiciones, yNodo, yBase, factorEscala, nivel + 1);
+            }
+
+            if (nodo.getDerecho() != null) {
+                double xDer = posiciones.get(nodo.getDerecho());
+                gc.strokeLine(x, yNodo, xDer, yNodo);
+                dibujarNodoMejorado(gc, nodo.getDerecho(), posiciones, yNodo, yBase, factorEscala, nivel + 1);
+            }
         }
     }
 
