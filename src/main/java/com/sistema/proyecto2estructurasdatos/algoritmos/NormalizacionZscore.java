@@ -1,6 +1,5 @@
 package com.sistema.proyecto2estructurasdatos.algoritmos;
 
-import com.sistema.proyecto2estructurasdatos.modelo.NodoSimple;
 import com.sistema.proyecto2estructurasdatos.modelo.Vector;
 
 /**
@@ -8,7 +7,7 @@ import com.sistema.proyecto2estructurasdatos.modelo.Vector;
    Convierte los datos para que tengan media 0 y desviación estándar 1
  */
 
-public class NormalizacionZscrore implements INormalizacion {
+public class NormalizacionZscore implements INormalizacion {
 
     @Override
     public Vector normalizar(Vector datos) {
@@ -49,6 +48,6 @@ public class NormalizacionZscrore implements INormalizacion {
 
     @Override
     public String getNombre() {
-        return "Z-Scrore";
+        return "Z-Score";
     }
 }

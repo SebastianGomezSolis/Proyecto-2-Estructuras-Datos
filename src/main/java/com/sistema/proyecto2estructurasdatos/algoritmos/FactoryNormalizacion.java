@@ -10,7 +10,7 @@ public class FactoryNormalizacion {
 
     public enum TipoNormalizacion {
         MIN_MAX,
-        Z_SCRORE,
+        Z_SCORE,
         LOGARITMICA
     }
 
@@ -23,8 +23,8 @@ public class FactoryNormalizacion {
         switch (tipo) {
             case MIN_MAX:
                 return new NormalizacionMinMax();
-            case Z_SCRORE:
-                return new NormalizacionZscrore();
+            case Z_SCORE:
+                return new NormalizacionZscore();
             case LOGARITMICA:
                 return new NormalizacionLogaritmica();
             default:
@@ -41,8 +41,8 @@ public class FactoryNormalizacion {
         switch (nombre.toUpperCase()) {
             case "MIN-MAX":
                 return new NormalizacionMinMax();
-            case "Z-SCRORE":
-                return new NormalizacionZscrore();
+            case "Z-SCORE":
+                return new NormalizacionZscore();
             case "LOGARÍTMICA":
             case "LOGARITMICA":
                 return new NormalizacionLogaritmica();

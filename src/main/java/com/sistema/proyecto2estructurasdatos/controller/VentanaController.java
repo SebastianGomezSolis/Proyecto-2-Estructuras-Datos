@@ -12,7 +12,6 @@ import javafx.scene.control.*;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.stage.FileChooser;
-import javafx.application.Platform;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
@@ -26,7 +25,6 @@ public class VentanaController {
     @FXML private Button btnExportar;
     @FXML private Label lblArchivo;
     @FXML private Canvas canvasDendrograma;
-    @FXML private ProgressBar progressBar;
     @FXML private VBox vboxColumnas;
 
     private ResultadoCSV datosCSV;
@@ -89,17 +87,13 @@ public class VentanaController {
         }
     }
 
-    private void generarDendrograma() {
+    /*private void generarDendrograma() {
         try {
-            Platform.runLater(() -> progressBar.setProgress(0.3));
-
             INormalizacion normalizacion = FactoryNormalizacion.crear(comboNormalizacion.getValue());
             IDistancia distancia = FactoryDistancia.crear(comboDistancia.getValue());
 
             double[] pesos = obtenerPesos();
             boolean[] ignoradas = obtenerColumnasIgnoradas();
-
-            Platform.runLater(() -> progressBar.setProgress(0.5));
 
             AlgoritmoClustering algoritmo = new AlgoritmoClustering(
                     normalizacion, distancia, pesos, ignoradas
@@ -107,32 +101,53 @@ public class VentanaController {
 
             dendrograma = algoritmo.ejecutar(datosCSV.datos);
 
-            Platform.runLater(() -> progressBar.setProgress(0.8));
-
             dibujarDendrograma();
 
-            Platform.runLater(() -> {
-                progressBar.setProgress(1.0);
-                btnExportar.setDisable(false);
-                mostrarInfo("Éxito", "Dendrograma generado exitosamente");
-            });
+            ///btnExportar.setDisable(false);
 
-            new Thread(() -> {
-                try {
-                    Thread.sleep(2000);
-                    Platform.runLater(() -> progressBar.setProgress(0));
-                } catch (InterruptedException e) {}
-            }).start();
+            mostrarInfo("Éxito", "Dendrograma generado exitosamente");
 
         } catch (Exception ex) {
-            Platform.runLater(() -> {
-                mostrarError("Error al generar dendrograma", ex.getMessage());
-                progressBar.setProgress(0);
-            });
+            mostrarError("Error al generar dendrograma", ex.getMessage());
             ex.printStackTrace();
+            btnExportar.setDisable(true);
         }
     }
+*/
+    private void generarDendrograma() {
+        try {
+            System.out.println("=== INICIO GENERACIÓN ===");
 
+            INormalizacion normalizacion = FactoryNormalizacion.crear(comboNormalizacion.getValue());
+            IDistancia distancia = FactoryDistancia.crear(comboDistancia.getValue());
+
+            double[] pesos = obtenerPesos();
+            boolean[] ignoradas = obtenerColumnasIgnoradas();
+
+            System.out.println("Ejecutando algoritmo...");
+            AlgoritmoClustering algoritmo = new AlgoritmoClustering(
+                    normalizacion, distancia, pesos, ignoradas
+            );
+
+            dendrograma = algoritmo.ejecutar(datosCSV.datos);
+            System.out.println("Dendrograma generado: " + (dendrograma != null));
+
+            dibujarDendrograma();
+            System.out.println("Dendrograma dibujado");
+
+            System.out.println("Habilitando botón exportar...");
+            btnExportar.setDisable(false);
+            System.out.println("Estado botón: " + !btnExportar.isDisable());
+
+            mostrarInfo("Éxito", "Dendrograma generado exitosamente");
+
+        } catch (Exception ex) {
+            System.out.println("ERROR: " + ex.getMessage());
+            mostrarError("Error al generar dendrograma", ex.getMessage());
+            ex.printStackTrace();
+            btnExportar.setDisable(true);
+        }
+    }
     private double[] obtenerPesos() {
         int dimensionReal = datosCSV.datos.obtener(0).getVectorOriginal().tamanio();
         double[] pesos = new double[dimensionReal];
@@ -150,7 +165,6 @@ public class VentanaController {
             }
         }
 
-        // Rellena restantes (por si hay más atributos tras codificación one-hot)
         while (idx < dimensionReal) pesos[idx++] = 1.0;
         return pesos;
     }
@@ -187,24 +201,28 @@ public class VentanaController {
         int numHojas = hojas.tamanio();
         if (numHojas == 0) return;
 
+        double distanciaMaxima = dendrograma.getRaiz().getDistancia();
         double espacioHorizontal = width / (numHojas + 1);
         double margen = 50;
+        double alturaUtil = height - (2 * margen);
 
         Map<NodoArbol, Double> posicionesX = new HashMap<>();
         asignarPosicionesX(dendrograma.getRaiz(), posicionesX, 0, numHojas, espacioHorizontal);
 
         gc.setStroke(Color.web("#26a69a"));
         gc.setLineWidth(2.5);
-        dibujarNodo(gc, dendrograma.getRaiz(), posicionesX, height - margen, height, 0);
+
+        double factorEscala = distanciaMaxima > 0 ? alturaUtil / distanciaMaxima : 100;
+        dibujarNodo(gc, dendrograma.getRaiz(), posicionesX, height - margen, height - margen, factorEscala);
 
         gc.setFill(Color.web("#00695c"));
-        gc.setFont(javafx.scene.text.Font.font("Arial", 11));
+        gc.setFont(javafx.scene.text.Font.font("Arial", 10));
         for (int i = 0; i < hojas.tamanio(); i++) {
             NodoArbol hoja = hojas.obtener(i);
             double x = posicionesX.get(hoja);
 
             gc.save();
-            gc.translate(x, height - 5);
+            gc.translate(x, height - margen + 10);
             gc.rotate(-45);
             gc.fillText(hoja.getEtiqueta(), 0, 0);
             gc.restore();
@@ -243,11 +261,10 @@ public class VentanaController {
 
     private void dibujarNodo(GraphicsContext gc, NodoArbol nodo,
                              Map<NodoArbol, Double> posiciones,
-                             double y, double yBase, double distanciaMaxima) {
+                             double y, double yBase, double factorEscala) {
         if (nodo == null) return;
 
         double x = posiciones.get(nodo);
-        double factorEscala = 100;
         double yNodo = yBase - (nodo.getDistancia() * factorEscala);
 
         if (!nodo.esHoja()) {
@@ -256,13 +273,13 @@ public class VentanaController {
             if (nodo.getIzquierdo() != null) {
                 double xIzq = posiciones.get(nodo.getIzquierdo());
                 gc.strokeLine(x, yNodo, xIzq, yNodo);
-                dibujarNodo(gc, nodo.getIzquierdo(), posiciones, yNodo, yBase, distanciaMaxima);
+                dibujarNodo(gc, nodo.getIzquierdo(), posiciones, yNodo, yBase, factorEscala);
             }
 
             if (nodo.getDerecho() != null) {
                 double xDer = posiciones.get(nodo.getDerecho());
                 gc.strokeLine(x, yNodo, xDer, yNodo);
-                dibujarNodo(gc, nodo.getDerecho(), posiciones, yNodo, yBase, distanciaMaxima);
+                dibujarNodo(gc, nodo.getDerecho(), posiciones, yNodo, yBase, factorEscala);
             }
         }
     }
