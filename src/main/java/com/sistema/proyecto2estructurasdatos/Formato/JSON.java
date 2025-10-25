@@ -1,27 +1,20 @@
 package com.sistema.proyecto2estructurasdatos.Formato;
 
 import com.sistema.proyecto2estructurasdatos.modelo.ArbolBinario;
+import com.sistema.proyecto2estructurasdatos.modelo.NodoArbol;
 import java.io.IOException;
 import java.io.FileWriter;
 
 public class JSON {
-    /**
-     * Exporta un dendrograma a archivo JSON
-     * @param arbol Árbol binario del dendrograma
-     * @param rutaArchivo Ruta donde guardar el archivo
-     */
+
     public static void exportar(ArbolBinario arbol, String rutaArchivo) throws IOException {
         StringBuilder json = new StringBuilder();
-        json.append("{\n");
-        json.append("  \"dendrograma\": ");
 
         if (arbol.getRaiz() != null) {
-            construirJSON(arbol.getRaiz(), json, 2);
+            construirJSON(arbol.getRaiz(), json, 0);
         } else {
             json.append("null");
         }
-
-        json.append("\n}");
 
         // Escribir a archivo
         try (FileWriter writer = new FileWriter(rutaArchivo)) {
@@ -29,11 +22,8 @@ public class JSON {
         }
     }
 
-    /**
-     * Construye recursivamente la representación JSON del árbol
-     * Complejidad: O(n)
-     */
-    private static void construirJSON(ArbolBinario.Nodo nodo, StringBuilder json, int nivel) {
+    // Construye recursivamente el JSON en formato compatible con el visualizador
+    private static void construirJSON(NodoArbol nodo, StringBuilder json, int nivel) {
         if (nodo == null) {
             json.append("null");
             return;
@@ -44,60 +34,42 @@ public class JSON {
 
         json.append("{\n");
 
-        // Etiqueta
-        json.append(indentacionHija).append("\"etiqueta\": \"")
+        // "n" - nombre/etiqueta
+        json.append(indentacionHija).append("\"n\": \"")
                 .append(escaparJSON(nodo.getEtiqueta())).append("\",\n");
 
-        // Distancia
-        json.append(indentacionHija).append("\"distancia\": ")
+        // "d" - distancia
+        json.append(indentacionHija).append("\"d\": ")
                 .append(String.format("%.6f", nodo.getDistancia())).append(",\n");
 
-        // Es hoja
-        json.append(indentacionHija).append("\"esHoja\": ")
-                .append(nodo.esHoja()).append(",\n");
+        // "c" - children (hijos)
+        json.append(indentacionHija).append("\"c\": ");
 
-        // Índice original (solo para hojas)
         if (nodo.esHoja()) {
-            json.append(indentacionHija).append("\"indiceOriginal\": ")
-                    .append(nodo.getIndiceOriginal()).append(",\n");
-        }
+            // Si es hoja, array vacío
+            json.append("[]");
+        } else {
+            // Si tiene hijos, crear array con izquierdo y derecho
+            json.append("[\n");
 
-        // Datos (solo para hojas)
-        if (nodo.esHoja() && nodo.getDatos() != null) {
-            json.append(indentacionHija).append("\"datos\": [");
-            for (int i = 0; i < nodo.getDatos().tamanio(); i++) {
-                json.append(String.format("%.6f", nodo.getDatos().obtener(i)));
-                if (i < nodo.getDatos().tamanio() - 1) {
-                    json.append(", ");
-                }
+            if (nodo.getIzquierdo() != null) {
+                json.append(obtenerIndentacion(nivel + 2));
+                construirJSON(nodo.getIzquierdo(), json, nivel + 2);
             }
-            json.append("],\n");
+
+            if (nodo.getDerecho() != null) {
+                json.append(",\n");
+                json.append(obtenerIndentacion(nivel + 2));
+                construirJSON(nodo.getDerecho(), json, nivel + 2);
+            }
+
+            json.append("\n").append(indentacionHija).append("]");
         }
 
-        // Hijo izquierdo
-        json.append(indentacionHija).append("\"izquierdo\": ");
-        if (nodo.getIzquierdo() != null) {
-            construirJSON(nodo.getIzquierdo(), json, nivel + 1);
-        } else {
-            json.append("null");
-        }
-        json.append(",\n");
-
-        // Hijo derecho
-        json.append(indentacionHija).append("\"derecho\": ");
-        if (nodo.getDerecho() != null) {
-            construirJSON(nodo.getDerecho(), json, nivel + 1);
-        } else {
-            json.append("null");
-        }
         json.append("\n");
-
         json.append(indentacion).append("}");
     }
 
-    /**
-     * Genera una cadena de indentación
-     */
     private static String obtenerIndentacion(int nivel) {
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < nivel; i++) {
@@ -106,9 +78,6 @@ public class JSON {
         return sb.toString();
     }
 
-    /**
-     * Escapa caracteres especiales para JSON
-     */
     private static String escaparJSON(String texto) {
         if (texto == null) return "";
         return texto.replace("\\", "\\\\")
@@ -118,13 +87,7 @@ public class JSON {
                 .replace("\t", "\\t");
     }
 
-    /**
-     * Importa un dendrograma desde un archivo JSON
-     * (Método simplificado - en una implementación completa sería más robusto)
-     */
     public static ArbolBinario importar(String rutaArchivo) throws IOException {
-        // Por simplicidad, dejamos esta funcionalidad como stub
-        // En una implementación completa, se usaría un parser JSON
         throw new UnsupportedOperationException("Importación JSON no implementada en esta versión");
     }
 }

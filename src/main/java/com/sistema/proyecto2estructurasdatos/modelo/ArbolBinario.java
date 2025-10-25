@@ -30,7 +30,7 @@ public class ArbolBinario {
             return 0;
         }
         int alturaIzq = alturaRecursiva(nodo.getIzquierdo());
-        int alturaDer = alturaRecursiva(nodo.getIzquierdo());
+        int alturaDer = alturaRecursiva(nodo.getDerecho());
         return 1 + Math.max(alturaIzq, alturaDer);
     }
 

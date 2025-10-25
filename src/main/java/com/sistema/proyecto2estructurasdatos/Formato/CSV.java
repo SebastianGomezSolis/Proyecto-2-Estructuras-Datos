@@ -7,49 +7,8 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 
-/**
- * Utilidad para leer archivos CSV
- * Complejidad: O(n*m) donde n es el número de filas y m el número de columnas
- */
 public class CSV {
 
-    /**
-     * Clase para almacenar información sobre columnas
-     */
-    public static class InfoColumna {
-        public String nombre;
-        public boolean esNumerica;
-        public Lista<String> categorias; // Para columnas cualitativas
-
-        public InfoColumna(String nombre) {
-            this.nombre = nombre;
-            this.esNumerica = true;
-            this.categorias = new Lista<>();
-        }
-    }
-
-    /**
-     * Clase para almacenar el resultado de la lectura
-     */
-    public static class ResultadoCSV {
-        public Lista<Dato> datos;
-        public Lista<InfoColumna> columnas;
-        public int numFilas;
-        public int numColumnas;
-
-        public ResultadoCSV() {
-            this.datos = new Lista<>();
-            this.columnas = new Lista<>();
-            this.numFilas = 0;
-            this.numColumnas = 0;
-        }
-    }
-
-    /**
-     * Lee un archivo CSV y lo convierte en una lista de Datos
-     * @param rutaArchivo Ruta del archivo CSV
-     * @return ResultadoCSV con los datos procesados
-     */
     public static ResultadoCSV leer(String rutaArchivo) throws IOException {
         ResultadoCSV resultado = new ResultadoCSV();
 
@@ -63,12 +22,12 @@ public class CSV {
             String[] encabezados = lineaEncabezados.split(",");
             resultado.numColumnas = encabezados.length;
 
-            // Crear información de columnas
+            // Guardar nombres de columnas
             for (String encabezado : encabezados) {
-                resultado.columnas.agregar(new InfoColumna(encabezado.trim()));
+                resultado.nombresColumnas.agregar(encabezado.trim());
             }
 
-            // Almacenar todas las filas primero para analizar tipos
+            // Leer todas las filas primero
             Lista<String[]> filasTemporales = new Lista<>();
             String linea;
             while ((linea = br.readLine()) != null) {
@@ -77,86 +36,100 @@ public class CSV {
                 resultado.numFilas++;
             }
 
-            // Analizar tipos de datos y categorías
-            analizarTiposColumnas(resultado.columnas, filasTemporales);
+            // Analizar qué columnas son numéricas y cuáles categóricas
+            boolean[] esNumerica = analizarTipos(filasTemporales, encabezados.length);
 
-            // Procesar cada fila
-            int indiceDato = 0;
+            // Obtener categorías para columnas cualitativas
+            Lista<Lista<String>> categoriasPorColumna = obtenerCategorias(filasTemporales, esNumerica);
+
+            // Procesar cada fila y crear los datos
             for (int i = 0; i < filasTemporales.tamanio(); i++) {
                 String[] valores = filasTemporales.obtener(i);
 
-                // Crear vector con conversión one-hot para categóricos
-                Vector vector = convertirAVector(valores, resultado.columnas);
+                Vector vector = convertirAVector(valores, esNumerica, categoriasPorColumna);
+                String etiqueta = valores.length > 0 ? valores[0].trim() : "Dato_" + i;
 
-                // Crear etiqueta (usar primera columna o índice)
-                String etiqueta = valores.length > 0 ? valores[0] : "Dato_" + indiceDato;
-
-                Dato dato = new Dato(etiqueta, vector, indiceDato);
+                Dato dato = new Dato(etiqueta, vector, i);
                 resultado.datos.agregar(dato);
-                indiceDato++;
             }
         }
 
         return resultado;
     }
 
-    /**
-     * Analiza los tipos de datos de cada columna
-     */
-    private static void analizarTiposColumnas(Lista<InfoColumna> columnas, Lista<String[]> filas) {
-        for (int col = 0; col < columnas.tamanio(); col++) {
-            InfoColumna info = columnas.obtener(col);
-            boolean todasNumericas = true;
+    // Analiza qué columnas son numéricas
+    private static boolean[] analizarTipos(Lista<String[]> filas, int numColumnas) {
+        boolean[] esNumerica = new boolean[numColumnas];
 
-            // Analizar todas las filas de esta columna
+        // Inicialmente asumimos que todas son numéricas
+        for (int col = 0; col < numColumnas; col++) {
+            esNumerica[col] = true;
+        }
+
+        // Verificar cada columna
+        for (int col = 0; col < numColumnas; col++) {
             for (int fila = 0; fila < filas.tamanio(); fila++) {
                 String[] valores = filas.obtener(fila);
                 if (col < valores.length) {
                     String valor = valores[col].trim();
-
                     if (!esNumerico(valor)) {
-                        todasNumericas = false;
-                        // Agregar categoría si no existe
-                        boolean existe = false;
-                        for (int i = 0; i < info.categorias.tamanio(); i++) {
-                            if (info.categorias.obtener(i).equals(valor)) {
-                                existe = true;
-                                break;
-                            }
-                        }
-                        if (!existe && !valor.isEmpty()) {
-                            info.categorias.agregar(valor);
+                        esNumerica[col] = false;
+                        break;
+                    }
+                }
+            }
+        }
+
+        return esNumerica;
+    }
+
+    // Obtiene todas las categorías únicas para columnas categóricas
+    private static Lista<Lista<String>> obtenerCategorias(Lista<String[]> filas, boolean[] esNumerica) {
+        Lista<Lista<String>> categorias = new Lista<>();
+
+        for (int col = 0; col < esNumerica.length; col++) {
+            Lista<String> categoriasColumna = new Lista<>();
+
+            if (!esNumerica[col]) {
+                // Es categórica, recolectar valores únicos
+                for (int fila = 0; fila < filas.tamanio(); fila++) {
+                    String[] valores = filas.obtener(fila);
+                    if (col < valores.length) {
+                        String valor = valores[col].trim();
+                        if (!valor.isEmpty() && !categoriasColumna.contiene(valor)) {
+                            categoriasColumna.agregar(valor);
                         }
                     }
                 }
             }
 
-            info.esNumerica = todasNumericas;
+            categorias.agregar(categoriasColumna);
         }
+
+        return categorias;
     }
 
-    /**
-     * Convierte una fila de strings a un vector numérico
-     */
-    private static Vector convertirAVector(String[] valores, Lista<InfoColumna> columnas) {
+    // Convierte una fila a vector numérico (con one-hot para categóricas)
+    private static Vector convertirAVector(String[] valores, boolean[] esNumerica,
+                                           Lista<Lista<String>> categorias) {
         Vector vector = new Vector();
 
-        for (int i = 0; i < columnas.tamanio() && i < valores.length; i++) {
-            InfoColumna info = columnas.obtener(i);
-            String valor = valores[i].trim();
+        for (int col = 0; col < esNumerica.length && col < valores.length; col++) {
+            String valor = valores[col].trim();
 
-            if (info.esNumerica) {
+            if (esNumerica[col]) {
                 // Valor numérico directo
                 try {
                     double valorNumerico = Double.parseDouble(valor);
                     vector.agregar(valorNumerico);
                 } catch (NumberFormatException e) {
-                    vector.agregar(0.0); // Valor por defecto si hay error
+                    vector.agregar(0.0);
                 }
             } else {
-                // Valor cualitativo - codificación one-hot
-                for (int j = 0; j < info.categorias.tamanio(); j++) {
-                    if (info.categorias.obtener(j).equals(valor)) {
+                // Valor categórico - one-hot encoding
+                Lista<String> categoriasCol = categorias.obtener(col);
+                for (int i = 0; i < categoriasCol.tamanio(); i++) {
+                    if (categoriasCol.obtener(i).equals(valor)) {
                         vector.agregar(1.0);
                     } else {
                         vector.agregar(0.0);
@@ -164,12 +137,11 @@ public class CSV {
                 }
             }
         }
+
         return vector;
     }
 
-    /**
-     * Verifica si un string es numérico
-     */
+    // Verifica si un string es numérico
     private static boolean esNumerico(String str) {
         if (str == null || str.isEmpty()) {
             return false;
@@ -182,4 +154,3 @@ public class CSV {
         }
     }
 }
-

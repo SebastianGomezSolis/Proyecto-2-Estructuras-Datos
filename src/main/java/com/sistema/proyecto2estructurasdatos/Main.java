@@ -85,10 +85,9 @@ import java.io.IOException;
 public class Main extends Application {
     @Override
     public void start(Stage stage) throws IOException {
-        FXMLLoader fxmlLoader = new FXMLLoader(Main.class.getResource("/com.sistema.sistemaprescripciondespachorecetas/view/Ventana.fxml"));
-        Scene scene = new Scene(fxmlLoader.load(), 600, 400);
+        FXMLLoader fxmlLoader = new FXMLLoader(Main.class.getResource("/com/sistema/proyecto2estructurasdatos/view/Ventana.fxml"));
+        Scene scene = new Scene(fxmlLoader.load(), 1000, 700);
         stage.setTitle("Dendograma");
-        stage.getIcons().add(new Image(getClass().getResourceAsStream("/com.sistema.sistemaprescripciondespachorecetas/images/Ventana.png")));
         stage.setScene(scene);
         stage.show();
     }
