@@ -76,21 +76,6 @@ public class Vector implements Iterable<Double> {
 
     public int tamanio() { return tamanio; }
 
-
-    public int capacidad() { return capacidad; }
-
-    public boolean estaVacio() {
-        return tamanio == 0;
-    }
-
-    public double[] toArray() {
-        double[] resultado = new double[tamanio];
-        for (int i = 0; i < tamanio; i++) {
-            resultado[i] = datos[i];
-        }
-        return resultado;
-    }
-
     public double productoPunto(Vector otro) {
         if (otro == null) {
             throw new IllegalArgumentException("El vector no puede ser null");
@@ -115,14 +100,6 @@ public class Vector implements Iterable<Double> {
             sumaCuadrados += datos[i] * datos[i];
         }
         return Math.sqrt(sumaCuadrados);
-    }
-
-    public Vector clonar() {
-        Vector nuevoVector = new Vector(this.capacidad);
-        for (int i = 0; i < this.tamanio; i++) {
-            nuevoVector.agregar(this.datos[i]);
-        }
-        return nuevoVector;
     }
 
     // Implementación del patrón Iterator

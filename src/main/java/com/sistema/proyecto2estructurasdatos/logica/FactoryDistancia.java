@@ -1,4 +1,4 @@
-package com.sistema.proyecto2estructurasdatos.algoritmos;
+package com.sistema.proyecto2estructurasdatos.logica;
 
 /**
  * Factory Method para crear instancias de estrategias de distancia

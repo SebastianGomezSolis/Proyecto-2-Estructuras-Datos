@@ -44,17 +44,6 @@ public class Lista<T> implements Iterable<T> {
         return actual.getDato();
     }
 
-    // Establecer valor en una posición específica
-    public void establecer(int indice, T elemento) {
-        validarIndice(indice);
-
-        NodoSimple<T> actual = cabeza;
-        for (int i = 0; i < indice; i++) {
-            actual = actual.getSiguiente();
-        }
-
-        actual.setDato(elemento);
-    }
 
     // Eliminar elemento en una posición específica
     public T eliminar(int indice) {
@@ -108,16 +97,6 @@ public class Lista<T> implements Iterable<T> {
     //  Obtener el tamaño de la lista
     public int tamanio() {
         return tamanio;
-    }
-
-    public boolean estaVacia() {
-        return tamanio == 0;
-    }
-
-
-    public void limpiar() {
-        cabeza = null;
-        tamanio = 0;
     }
 
     // Validar que un índice esté dentro del rango válido

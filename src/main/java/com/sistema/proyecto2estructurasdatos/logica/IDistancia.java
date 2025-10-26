@@ -1,4 +1,4 @@
-package com.sistema.proyecto2estructurasdatos.algoritmos;
+package com.sistema.proyecto2estructurasdatos.logica;
 
 import com.sistema.proyecto2estructurasdatos.modelo.Vector;
 

@@ -37,13 +37,7 @@ public class NodoArbol {
     public NodoArbol getIzquierdo() { return izquierdo; }
     public NodoArbol getDerecho() { return derecho; }
     public double getDistancia() { return distancia; }
-    public int getIndiceOriginal() { return indiceOriginal; }
-
-    public void setEtiqueta(String etiqueta) { this.etiqueta = etiqueta; }
     public void setDatos(Vector datos) { this.datos = datos; }
-    public void setIzquierdo(NodoArbol izquierdo) { this.izquierdo = izquierdo; }
-    public void setDerecho(NodoArbol derecho) { this.derecho = derecho; }
     public void setDistancia(double distancia) { this.distancia = distancia; }
-    public void setIndiceOriginal(int indiceOriginal) { this.indiceOriginal = indiceOriginal; }
 
 }

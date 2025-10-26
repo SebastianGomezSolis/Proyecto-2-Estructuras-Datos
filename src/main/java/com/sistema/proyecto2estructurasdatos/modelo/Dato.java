@@ -8,8 +8,6 @@ public class Dato {
     private Vector vectorProcesado;
     private int indice;
 
-    public Dato() {}
-
     public Dato(String etiqueta, Vector vectorOriginal, int indice) {
         this.etiqueta = etiqueta;
         this.vectorOriginal = vectorOriginal;
@@ -17,22 +15,10 @@ public class Dato {
         this.indice = indice;
     }
 
-//    public Dato(String etiqueta, Vector vectorOriginal) {
-//        this(etiqueta, vectorOriginal, -1);
-//    }
-
     // Getters y Setters
     public String getEtiqueta() { return etiqueta; }
     public Vector getVectorOriginal() { return vectorOriginal; }
     public Vector getVectorProcesado() { return vectorProcesado; }
     public int getIndice() { return indice; }
-
-    public void setEtiqueta(String etiqueta) { this.etiqueta = etiqueta; }
-    public void setVectorOriginal(Vector vectorOriginal) { this.vectorOriginal = vectorOriginal; }
     public void setVectorProcesado(Vector vectorProcesado) { this.vectorProcesado = vectorProcesado; }
-    public void setIndice(int indice) { this.indice = indice; }
-
-    // Verificar si el dato ha sido procesado
-    public boolean estaProcesado() { return vectorProcesado != null; }
-
 }
