@@ -4,6 +4,7 @@
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.ComboBox?>
 <?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ProgressIndicator?>
 <?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.control.Separator?>
 <?import javafx.scene.layout.HBox?>
@@ -11,33 +12,55 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
 
-<VBox prefHeight="600.0" prefWidth="1000.0" style="-fx-background-color: linear-gradient(to bottom right, #e0f2f1, #e1f5fe);" xmlns="http://javafx.com/javafx/24.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.sistema.proyecto2estructurasdatos.controller.VentanaController">
+<VBox prefHeight="800.0" prefWidth="1300.0"
+      style="-fx-background-color: linear-gradient(to bottom right, #e0f2f1, #e1f5fe);"
+      xmlns="http://javafx.com/javafx/24.0.1"
+      xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.sistema.proyecto2estructurasdatos.controller.VentanaController">
 
     <!-- Header -->
-    <HBox alignment="CENTER_LEFT" spacing="20" style="-fx-background-color: linear-gradient(to right, #00897b, #26c6da); -fx-padding: 15 25; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.2), 6, 0, 0, 2);">
+    <HBox alignment="CENTER_LEFT" spacing="20"
+          style="-fx-background-color: linear-gradient(to right, #00897b, #26c6da); -fx-padding: 15 25; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.2), 6, 0, 0, 2);">
         <VBox spacing="2">
-            <Label prefHeight="60.0" prefWidth="131.0" style="-fx-font-size: 20px; -fx-font-weight: bold;" text="Dendrograma" textFill="white">
+            <Label prefHeight="60.0" prefWidth="200.0"
+                   style="-fx-font-size: 24px; -fx-font-weight: bold;"
+                   text="Dendrograma" textFill="white">
                 <font>
                     <Font size="32.0" />
                 </font>
             </Label>
             <Label style="-fx-font-size: 10px;" textFill="#b2dfdb" />
         </VBox>
+
         <Separator orientation="VERTICAL" style="-fx-background-color: rgba(255,255,255,0.3);" />
-        <Button fx:id="btnCargarCSV" style="-fx-background-color: rgba(255,255,255,0.9); -fx-text-fill: #00897b; -fx-font-size: 12px; -fx-padding: 8 16; -fx-border-radius: 5; -fx-background-radius: 5; -fx-font-weight: bold;" text="Cargar CSV" />
+        <Button fx:id="btnCargarCSV"
+                style="-fx-background-color: rgba(255,255,255,0.9); -fx-text-fill: #00897b; -fx-font-size: 12px; -fx-padding: 8 16; -fx-border-radius: 5; -fx-background-radius: 5; -fx-font-weight: bold;"
+                text="Cargar CSV" />
         <Region HBox.hgrow="ALWAYS" />
-        <Button fx:id="btnGenerar" style="-fx-background-color: #66bb6a; -fx-text-fill: white; -fx-font-size: 12px; -fx-padding: 8 20; -fx-border-radius: 5; -fx-background-radius: 5; -fx-font-weight: bold;" text="Generar" />
-        <Button fx:id="btnExportar" style="-fx-background-color: #42a5f5; -fx-text-fill: white; -fx-font-size: 12px; -fx-padding: 8 20; -fx-border-radius: 5; -fx-background-radius: 5; -fx-font-weight: bold;" text="Exportar" />
+        <Button fx:id="btnGenerar"
+                style="-fx-background-color: #66bb6a; -fx-text-fill: white; -fx-font-size: 12px; -fx-padding: 8 20; -fx-border-radius: 5; -fx-background-radius: 5; -fx-font-weight: bold;"
+                text="Generar" />
+        <Button fx:id="btnExportar"
+                style="-fx-background-color: #42a5f5; -fx-text-fill: white; -fx-font-size: 12px; -fx-padding: 8 20; -fx-border-radius: 5; -fx-background-radius: 5; -fx-font-weight: bold;"
+                text="Exportar" />
+        <ProgressIndicator fx:id="progress"
+                           prefWidth="26" prefHeight="26"
+                           visible="false"
+                           style="-fx-progress-color: #ffffff;" />
     </HBox>
 
     <!-- Content -->
     <HBox spacing="15" style="-fx-padding: 15;" VBox.vgrow="ALWAYS">
 
         <!-- Canvas Area -->
-        <VBox spacing="10" style="-fx-background-color: white; -fx-padding: 15; -fx-border-radius: 10; -fx-background-radius: 10; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.12), 8, 0, 0, 2);" HBox.hgrow="ALWAYS">
+        <VBox spacing="10"
+              style="-fx-background-color: white; -fx-padding: 15; -fx-border-radius: 10; -fx-background-radius: 10; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.12), 8, 0, 0, 2);"
+              HBox.hgrow="ALWAYS">
             <HBox alignment="CENTER_LEFT" spacing="8" />
-            <ScrollPane fitToHeight="true" fitToWidth="true" style="-fx-background-color: #fafafa; -fx-border-radius: 8; -fx-background-radius: 8; -fx-border-color: #b2dfdb; -fx-border-width: 2;" VBox.vgrow="ALWAYS">
-                <Canvas fx:id="canvasDendrograma" height="500" width="700" />
+            <ScrollPane fitToHeight="true" fitToWidth="true"
+                        style="-fx-background-color: #fafafa; -fx-border-radius: 8; -fx-background-radius: 8; -fx-border-color: #b2dfdb; -fx-border-width: 2;"
+                        VBox.vgrow="ALWAYS">
+                <Canvas fx:id="canvasDendrograma" height="700" width="1100" />
             </ScrollPane>
         </VBox>
 
@@ -45,38 +68,52 @@
         <VBox prefWidth="320" spacing="12">
 
             <!-- Configuration Panel -->
-            <VBox spacing="10" style="-fx-background-color: white; -fx-padding: 15; -fx-border-radius: 10; -fx-background-radius: 10; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.12), 8, 0, 0, 2);">
-                <Label style="-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #00897b;" text=" Configuración" />
+            <VBox spacing="10"
+                  style="-fx-background-color: white; -fx-padding: 15; -fx-border-radius: 10; -fx-background-radius: 10; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.12), 8, 0, 0, 2);">
+                <Label style="-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #00897b;"
+                       text="Configuración" />
 
                 <VBox spacing="5">
-                    <Label style="-fx-font-size: 10px; -fx-font-weight: bold; -fx-text-fill: #546e7a;" text="Archivo:" />
-                    <Label fx:id="lblArchivo" style="-fx-font-size: 10px; -fx-text-fill: #78909c; -fx-background-color: #eceff1; -fx-padding: 5; -fx-border-radius: 4; -fx-background-radius: 4;" text="Sin seleccionar" wrapText="true" />
+                    <Label style="-fx-font-size: 10px; -fx-font-weight: bold; -fx-text-fill: #546e7a;"
+                           text="Archivo:" />
+                    <Label fx:id="lblArchivo"
+                           style="-fx-font-size: 10px; -fx-text-fill: #78909c; -fx-background-color: #eceff1; -fx-padding: 5; -fx-border-radius: 4; -fx-background-radius: 4;"
+                           text="Sin seleccionar" wrapText="true" />
                 </VBox>
 
                 <VBox spacing="5">
-                    <Label style="-fx-font-size: 10px; -fx-font-weight: bold; -fx-text-fill: #546e7a;" text="Normalización:" />
-                    <ComboBox fx:id="comboNormalizacion" maxWidth="Infinity" style="-fx-background-color: #e0f2f1; -fx-font-size: 11px; -fx-border-color: #80cbc4; -fx-border-radius: 5; -fx-background-radius: 5;" />
+                    <Label style="-fx-font-size: 10px; -fx-font-weight: bold; -fx-text-fill: #546e7a;"
+                           text="Normalización:" />
+                    <ComboBox fx:id="comboNormalizacion" maxWidth="Infinity"
+                              style="-fx-background-color: #e0f2f1; -fx-font-size: 11px; -fx-border-color: #80cbc4; -fx-border-radius: 5; -fx-background-radius: 5;" />
                 </VBox>
 
                 <VBox spacing="5">
-                    <Label style="-fx-font-size: 10px; -fx-font-weight: bold; -fx-text-fill: #546e7a;" text="Distancia:" />
-                    <ComboBox fx:id="comboDistancia" maxWidth="Infinity" style="-fx-background-color: #e0f2f1; -fx-font-size: 11px; -fx-border-color: #80cbc4; -fx-border-radius: 5; -fx-background-radius: 5;" />
+                    <Label style="-fx-font-size: 10px; -fx-font-weight: bold; -fx-text-fill: #546e7a;"
+                           text="Distancia:" />
+                    <ComboBox fx:id="comboDistancia" maxWidth="Infinity"
+                              style="-fx-background-color: #e0f2f1; -fx-font-size: 11px; -fx-border-color: #80cbc4; -fx-border-radius: 5; -fx-background-radius: 5;" />
                 </VBox>
             </VBox>
 
             <!-- Variables Panel -->
-            <VBox spacing="8" style="-fx-background-color: white; -fx-padding: 15; -fx-border-radius: 10; -fx-background-radius: 10; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.12), 8, 0, 0, 2);" VBox.vgrow="ALWAYS">
-                <Label style="-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #00897b;" text="Variables y Pesos" />
-                <ScrollPane fitToHeight="true" style="-fx-background-color: #f1f8f6; -fx-border-color: #b2dfdb; -fx-border-radius: 6; -fx-background-radius: 6;" VBox.vgrow="ALWAYS">
+            <VBox spacing="8"
+                  style="-fx-background-color: white; -fx-padding: 15; -fx-border-radius: 10; -fx-background-radius: 10; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.12), 8, 0, 0, 2);"
+                  VBox.vgrow="ALWAYS">
+                <Label style="-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #00897b;"
+                       text="Variables y Pesos" />
+                <ScrollPane fitToHeight="true"
+                            style="-fx-background-color: #f1f8f6; -fx-border-color: #b2dfdb; -fx-border-radius: 6; -fx-background-radius: 6;"
+                            VBox.vgrow="ALWAYS">
                     <VBox fx:id="vboxColumnas" spacing="8" style="-fx-padding: 8;" />
                 </ScrollPane>
             </VBox>
-
         </VBox>
     </HBox>
 
     <!-- Footer -->
-    <HBox alignment="CENTER_LEFT" spacing="15" style="-fx-background-color: #00695c; -fx-padding: 8 25;">
+    <HBox alignment="CENTER_LEFT" spacing="15"
+          style="-fx-background-color: #00695c; -fx-padding: 8 25;">
         <Label style="-fx-font-size: 9px; -fx-text-fill: #b2dfdb;" />
         <Region HBox.hgrow="ALWAYS" />
     </HBox>

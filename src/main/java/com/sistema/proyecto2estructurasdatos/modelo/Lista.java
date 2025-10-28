@@ -2,104 +2,94 @@ package com.sistema.proyecto2estructurasdatos.modelo;
 
 import java.util.NoSuchElementException;
 
-// Lista enlazada simple genérica
-// Implementa una estructura de datos lineal con nodos enlazados
+/**
+ * Lista enlazada simple genérica.
+ * - Inserción al final en O(1) gracias a 'cola'.
+ * - Corrige eliminación del último nodo actualizando 'cola'.
+ * - Implementa SOLO tus interfaces personalizadas: Iterable/Iterador.
+ */
 public class Lista<T> implements Iterable<T> {
+
     private NodoSimple<T> cabeza;
+    private NodoSimple<T> cola;   // puntero a la cola para agregar en O(1)
     private int tamanio;
 
-    // Constructor
     public Lista() {
         this.cabeza = null;
+        this.cola = null;
         this.tamanio = 0;
     }
 
-    // Agregar elemento al final de la lista
+    // Agregar al final en O(1)
     public void agregar(T elemento) {
-        NodoSimple<T> nuevoNodo = new NodoSimple<>(elemento);
-
-        // Si la lista está vacía, el nuevo nodo es la cabeza
+        NodoSimple<T> nuevo = new NodoSimple<>(elemento);
         if (cabeza == null) {
-            cabeza = nuevoNodo;
+            cabeza = nuevo;
+            cola = nuevo;
         } else {
-            // Recorrer hasta el último nodo
-            NodoSimple<T> actual = cabeza;
-            while (actual.getSiguiente() != null) {
-                actual = actual.getSiguiente();
-            }
-            actual.setSiguiente(nuevoNodo);
+            cola.setSiguiente(nuevo);
+            cola = nuevo;
         }
         tamanio++;
     }
 
-    // Obtener elemento en una posición específica
     public T obtener(int indice) {
         validarIndice(indice);
-
         NodoSimple<T> actual = cabeza;
         for (int i = 0; i < indice; i++) {
             actual = actual.getSiguiente();
         }
-
         return actual.getDato();
     }
 
-
-    // Eliminar elemento en una posición específica
     public T eliminar(int indice) {
         validarIndice(indice);
+        T eliminado;
 
-        T elementoEliminado;
-
-        // Caso especial: eliminar la cabeza
         if (indice == 0) {
-            elementoEliminado = cabeza.getDato();
+            eliminado = cabeza.getDato();
             cabeza = cabeza.getSiguiente();
+            if (cabeza == null) cola = null; // lista quedó vacía
         } else {
-            // Encontrar el nodo anterior al que queremos eliminar
             NodoSimple<T> anterior = cabeza;
             for (int i = 0; i < indice - 1; i++) {
                 anterior = anterior.getSiguiente();
             }
-
-            // Guardar el dato a eliminar y actualizar el enlace
-            elementoEliminado = anterior.getSiguiente().getDato();
-            anterior.setSiguiente(anterior.getSiguiente().getSiguiente());
+            NodoSimple<T> rem = anterior.getSiguiente();
+            eliminado = rem.getDato();
+            NodoSimple<T> sig = rem.getSiguiente();
+            anterior.setSiguiente(sig);
+            if (sig == null) cola = anterior; // si borré el último, actualizo cola
         }
-
         tamanio--;
-        return elementoEliminado;
+        return eliminado;
     }
 
     public int buscar(T elemento) {
         NodoSimple<T> actual = cabeza;
-        int indice = 0;
-
+        int idx = 0;
         while (actual != null) {
-            if (actual.getDato() == null && elemento == null) {
-                return indice;
-            }
-            if (actual.getDato() != null && actual.getDato().equals(elemento)) {
-                return indice;
+            T dato = actual.getDato();
+            if ((dato == null && elemento == null) ||
+                    (dato != null && dato.equals(elemento))) {
+                return idx;
             }
             actual = actual.getSiguiente();
-            indice++;
+            idx++;
         }
-
-        return -1; // No encontrado
+        return -1;
     }
 
-    // Verificar si la lista contiene un elemento
-    public boolean contiene(T elemento) {
-        return buscar(elemento) != -1;
+    public boolean contiene(T elemento) { return buscar(elemento) != -1; }
+    public int tamanio() { return tamanio; }
+    public boolean estaVacia() { return tamanio == 0; }
+
+    public void limpiar() {
+        cabeza = null;
+        cola = null;
+        tamanio = 0;
     }
 
-    //  Obtener el tamaño de la lista
-    public int tamanio() {
-        return tamanio;
-    }
-
-    // Validar que un índice esté dentro del rango válido
     private void validarIndice(int indice) {
         if (indice < 0 || indice >= tamanio) {
             throw new IndexOutOfBoundsException(
@@ -108,25 +98,15 @@ public class Lista<T> implements Iterable<T> {
         }
     }
 
+    /* ===== Iterador personalizado ===== */
 
-    // Implementación del patrón Iterator
-    //  Permite recorrer la lista con foreach
-    @Override
+    @Override // <- este @Override es válido porque implementas TU Iterable<T>
     public Iterador<T> iterador() {
-        return new ListaIterator();
+        return new ListaIterador();
     }
 
-    /**
-     * Clase interna que implementa IIterator para Lista
-     * Permite recorrer los elementos de la lista de forma secuencial
-     */
-    private class ListaIterator implements Iterador<T> {
-        private NodoSimple<T> actual;
-
-        // Constructor del iterator
-        ListaIterator() {
-            this.actual = cabeza;
-        }
+    private class ListaIterador implements Iterador<T> {
+        private NodoSimple<T> actual = cabeza;
 
         @Override
         public boolean tieneSiguiente() {
@@ -135,7 +115,7 @@ public class Lista<T> implements Iterable<T> {
 
         @Override
         public T siguiente() {
-            if (!tieneSiguiente()) {
+            if (actual == null) {
                 throw new NoSuchElementException("No hay más elementos en la lista");
             }
             T dato = actual.getDato();

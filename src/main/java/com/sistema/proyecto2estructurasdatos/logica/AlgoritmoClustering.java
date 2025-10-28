@@ -3,13 +3,14 @@ package com.sistema.proyecto2estructurasdatos.logica;
 import com.sistema.proyecto2estructurasdatos.modelo.*;
 
 // Algoritmo de Clustering Jerárquico Aglomerativo
-// Implementa el método bottom-up para construcción del dendrograma
+// Implementa el metodo bottom-up para construcción del dendrograma
 // Proceso:
 // 1. Normalizar datos según estrategia seleccionada
 // 2. Aplicar pesos a las variables
 // 3. Calcular matriz de distancias
 // 4. Fusionar clusters más cercanos iterativamente
 // 5. Construir dendrograma con estructura de árbol binario
+
 public class AlgoritmoClustering {
     private INormalizacion normalizacion;
     private IDistancia distancia;
@@ -112,86 +113,150 @@ public class AlgoritmoClustering {
         }
     }
 
-    // Crea la matriz de distancias entre todos los pares de datos
+    // Crea matriz de distancias simétrica (triángulo superior) O(n^2 · m)
+    // O(n^2 · m), simétrica
     private Matriz crearMatrizDistancias(Lista<Dato> datos) {
         int n = datos.tamanio();
-        Matriz matriz = new Matriz(n, n);
-
-        // Calcular distancias para todos los pares - O(n²)
+        Matriz m = new Matriz(n, n);
         for (int i = 0; i < n; i++) {
+            m.insertar(i, i, 0.0);
+            Vector v1 = datos.obtener(i).getVectorProcesado();
+            for (int j = i + 1; j < n; j++) {
+                Vector v2 = datos.obtener(j).getVectorProcesado();
+                double d = distancia.calcular(v1, v2);
+                m.insertar(i, j, d);
+                m.insertar(j, i, d);
+            }
+        }
+        return m;
+    }
+
+    // Inicializa el vecino más cercano de cada i activo
+    private void inicializarNearest(Matriz m, boolean[] activo, int[] nearest, double[] nearestDist, int n) {
+        for (int i = 0; i < n; i++) {
+            if (!activo[i]) { nearest[i] = -1; nearestDist[i] = -1; continue; }
+            double best = Double.MAX_VALUE;
+            int idx = -1;
             for (int j = 0; j < n; j++) {
-                if (i == j) {
-                    // Distancia a sí mismo es 0
-                    matriz.insertar(i, j, 0.0);
-                } else {
-                    // Calcular distancia entre vectores procesados - O(m)
-                    Vector v1 = datos.obtener(i).getVectorProcesado();
-                    Vector v2 = datos.obtener(j).getVectorProcesado();
-                    double dist = distancia.calcular(v1, v2);
-                    matriz.insertar(i, j, dist);
+                if (i == j || !activo[j]) continue;
+                double d = m.obtener(i, j);
+                if (d > 0 && d < best) { best = d; idx = j; }
+            }
+            nearest[i] = idx;
+            nearestDist[i] = (idx == -1) ? -1 : best;
+        }
+    }
+
+    // Recomputar completamente el vecino de 'i'
+    private void recomputarNearestDe(Matriz m, boolean[] activo, int[] nearest, double[] nearestDist, int i, int n) {
+        double best = Double.MAX_VALUE;
+        int idx = -1;
+        for (int j = 0; j < n; j++) {
+            if (i == j || !activo[j]) continue;
+            double d = m.obtener(i, j);
+            if (d > 0 && d < best) { best = d; idx = j; }
+        }
+        nearest[i] = idx;
+        nearestDist[i] = (idx == -1) ? -1 : best;
+    }
+
+    // Construye el dendrograma usando clustering jerárquico aglomerativo
+    // Construye el dendrograma en O(n^2 · m)
+    private ArbolBinario construirDendrograma(Lista<Dato> datos, Matriz matrizDistancias) {
+        int n = datos.tamanio();
+
+        // Clusters por índice de matriz (reutilizaremos índices)
+        Cluster[] clusters = new Cluster[n];
+        boolean[] activo = new boolean[n];
+
+        // Inicializar clusters hoja
+        for (int i = 0; i < n; i++) {
+            Dato d = datos.obtener(i);
+            NodoArbol hoja = new NodoArbol(d.getEtiqueta(), d.getVectorProcesado(), d.getIndice());
+            clusters[i] = new Cluster(hoja, i);
+            activo[i] = true;
+        }
+
+        // Vecino más cercano cacheado
+        int[] nearest = new int[n];
+        double[] nearestDist = new double[n];
+        inicializarNearest(matrizDistancias, activo, nearest, nearestDist, n);
+
+        // Repetir n-1 fusiones
+        for (int paso = 0; paso < n - 1; paso++) {
+            // 1) Encontrar el mejor par global desde el cache
+            int a = -1, b = -1;
+            double best = Double.MAX_VALUE;
+            for (int i = 0; i < n; i++) {
+                if (!activo[i]) continue;
+                int j = nearest[i];
+                if (j != -1 && activo[j]) {
+                    double dist = nearestDist[i];
+                    if (dist > 0 && dist < best) {
+                        best = dist; a = i; b = j;
+                    }
+                }
+            }
+            if (a == -1 || b == -1) break; // nada que fusionar
+
+            // Asegurar a < b para consistencia
+            if (a > b) { int tmp = a; a = b; b = tmp; }
+
+            // 2) Crear nodo unión y cluster fusionado en índice 'a'
+            NodoArbol nuevoNodo = new NodoArbol(clusters[a].nodo, clusters[b].nodo, best);
+            Cluster fusionado = Cluster.fusionar(clusters[a], clusters[b], nuevoNodo, a);
+            clusters[a] = fusionado;
+            activo[b] = false;
+
+            // 3) Actualizar distancias desde 'a' hacia todos los activos (usando centroides)
+            Vector cenA = clusters[a].centroide();
+            for (int t = 0; t < n; t++) {
+                if (t == a || !activo[t]) continue;
+                Vector cenT = clusters[t].centroide();
+                double distAT = distancia.calcular(cenA, cenT); // O(m)
+                matrizDistancias.insertar(a, t, distAT);
+                matrizDistancias.insertar(t, a, distAT);
+
+                // invalidar fila/columna de b (opcional, por claridad)
+                matrizDistancias.insertar(b, t, -1.0);
+                matrizDistancias.insertar(t, b, -1.0);
+            }
+            matrizDistancias.insertar(a, a, 0.0);
+            // fila/col b marcada inactiva
+            for (int t = 0; t < n; t++) {
+                matrizDistancias.insertar(b, t, -1.0);
+                matrizDistancias.insertar(t, b, -1.0);
+            }
+
+            // 4) Recalcular nearest SOLO para:
+            //    - i = a (porque cambió)
+            //    - cualquier i cuyo vecino era a o b
+            //    - y cualquiera donde nueva dist a-i sea mejor
+            recomputarNearestDe(matrizDistancias, activo, nearest, nearestDist, a, n);
+            for (int i = 0; i < n; i++) {
+                if (!activo[i] || i == a) continue;
+
+                // Si su vecino apuntaba a 'a' o 'b', hay que recalcular
+                if (nearest[i] == a || nearest[i] == b) {
+                    recomputarNearestDe(matrizDistancias, activo, nearest, nearestDist, i, n);
+                    continue;
+                }
+
+                // Si la nueva distancia i-a mejora, actualiza
+                double cand = matrizDistancias.obtener(i, a);
+                if (cand > 0 && cand < nearestDist[i]) {
+                    nearest[i] = a;
+                    nearestDist[i] = cand;
                 }
             }
         }
 
-        return matriz;
+        // La raíz es el único activo que queda
+        int raizIdx = -1;
+        for (int i = 0; i < n; i++) if (activo[i]) { raizIdx = i; break; }
+        return new ArbolBinario(clusters[raizIdx].nodo);
     }
 
-    // Construye el dendrograma usando clustering jerárquico aglomerativo
-    private ArbolBinario construirDendrograma(Lista<Dato> datos, Matriz matrizDistancias) {
-        int n = datos.tamanio();
-
-        // Crear lista de clusters activos
-        // Inicialmente, cada dato es su propio cluster - O(n)
-        Lista<Cluster> clustersActivos = new Lista<>();
-        for (int i = 0; i < n; i++) {
-            Dato dato = datos.obtener(i);
-            NodoArbol nodo = new NodoArbol(dato.getEtiqueta(), dato.getVectorProcesado(), dato.getIndice());
-            clustersActivos.agregar(new Cluster(nodo, i));
-        }
-
-        // Copiar matriz de distancias para modificarla - O(n²)
-        Matriz matrizActual = copiarMatriz(matrizDistancias);
-
-        // Iterar hasta que quede un solo cluster - O(n) iteraciones
-        while (clustersActivos.tamanio() > 1) {
-
-            // Encontrar el par de clusters más cercano - O(n²)
-            Matriz.ParIndices parMinimo = encontrarMinimo(matrizActual, clustersActivos);
-
-            if (parMinimo.i == -1) {
-                // No hay más pares válidos para unir
-                break;
-            }
-
-            // Obtener los dos clusters a fusionar
-            Cluster cluster1 = clustersActivos.obtener(parMinimo.i);
-            Cluster cluster2 = clustersActivos.obtener(parMinimo.j);
-
-            // Crear nuevo nodo que fusiona ambos clusters
-            NodoArbol nuevoNodo = new NodoArbol(cluster1.nodo, cluster2.nodo, parMinimo.valor);
-
-            // Crear nuevo cluster
-            Cluster nuevoCluster = new Cluster(nuevoNodo, -1);
-
-            // Actualizar matriz de distancias con el nuevo cluster - O(n)
-            actualizarMatrizDistancias(matrizActual, clustersActivos,
-                    parMinimo.i, parMinimo.j, nuevoCluster);
-
-            // Eliminar clusters fusionados de la lista activa
-            // Eliminar el de mayor índice primero para no alterar índices
-            int mayor = Math.max(parMinimo.i, parMinimo.j);
-            int menor = Math.min(parMinimo.i, parMinimo.j);
-
-            clustersActivos.eliminar(mayor);
-            clustersActivos.eliminar(menor);
-
-            // Agregar el nuevo cluster
-            clustersActivos.agregar(nuevoCluster);
-        }
-
-        // El último cluster en la lista es la raíz del dendrograma
-        return new ArbolBinario(clustersActivos.obtener(0).nodo);
-    }
 
     // Encuentra el par de clusters con menor distancia
     private Matriz.ParIndices encontrarMinimo(Matriz matriz, Lista<Cluster> clustersActivos) {
@@ -308,29 +373,56 @@ public class AlgoritmoClustering {
         }
     }
 
-    // Metodo para copiar una matriz completa
-    private Matriz copiarMatriz(Matriz original) {
-        Matriz copia = new Matriz(original.getFilas(), original.getColumnas());
-
-        for (int i = 0; i < original.getFilas(); i++) {
-            for (int j = 0; j < original.getColumnas(); j++) {
-                copia.insertar(i, j, original.obtener(i, j));
-            }
-        }
-
-        return copia;
-    }
 
 
     // Clase interna para representar un cluster durante el proceso
-    // Mantiene referencia al nodo del árbol y su índice en la matriz
+// Mantiene nodo del árbol, índice en la matriz, y estado para centroides.
     private static class Cluster {
         NodoArbol nodo;
         int indiceMatriz;
 
+        // Para centroides “en vivo”
+        Vector suma;  // suma componente a componente de todas las hojas
+        int count;    // cantidad de hojas en el cluster
+
         Cluster(NodoArbol nodo, int indiceMatriz) {
             this.nodo = nodo;
             this.indiceMatriz = indiceMatriz;
+
+            // Inicializar suma y count a partir del nodo (hoja)
+            if (nodo != null && nodo.getDatos() != null) {
+                Vector v = nodo.getDatos();
+                this.suma = new Vector(v.tamanio());
+                for (int k = 0; k < v.tamanio(); k++) this.suma.agregar(v.obtener(k));
+                this.count = 1;
+            } else {
+                this.suma = new Vector();
+                this.count = 0;
+            }
+        }
+
+        // Fusionar dos clusters: suma = suma1 + suma2, count = count1 + count2
+        static Cluster fusionar(Cluster c1, Cluster c2, NodoArbol nuevoNodo, int indiceMatriz) {
+            Cluster c = new Cluster(nuevoNodo, indiceMatriz);
+            // inicializa suma con dimensión de c1
+            Vector s = new Vector(c1.suma.tamanio());
+            for (int i = 0; i < c1.suma.tamanio(); i++) {
+                s.agregar(c1.suma.obtener(i) + c2.suma.obtener(i));
+            }
+            c.suma = s;
+            c.count = c1.count + c2.count;
+            return c;
+        }
+
+        // Devuelve el centroide en O(m) (sin recorrer hojas)
+        Vector centroide() {
+            Vector cen = new Vector(suma.tamanio());
+            double inv = (count == 0) ? 0.0 : (1.0 / count);
+            for (int i = 0; i < suma.tamanio(); i++) {
+                cen.agregar(suma.obtener(i) * inv);
+            }
+            return cen;
         }
     }
+
 }
