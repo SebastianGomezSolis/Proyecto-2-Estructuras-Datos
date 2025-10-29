@@ -50,33 +50,42 @@ public class AlgoritmoClustering {
         return dendrograma;
     }
 
-    // Normaliza los datos y aplica pesos a cada dimensión
     private void procesarDatos(Lista<Dato> datos) {
-        // Obtener dimensión de los vectores
         int dimension = datos.obtener(0).getVectorOriginal().tamanio();
 
         // Normalizar cada dimensión por separado
         for (int dim = 0; dim < dimension; dim++) {
-
-            // Si la columna está ignorada, continuar con la siguiente
+            // Si la columna está ignorada, continuar
             if (columnasIgnoradas != null && dim < columnasIgnoradas.length &&
                     columnasIgnoradas[dim]) {
                 continue;
             }
 
-            // Extraer valores de esta dimensión - O(n)
+            // Extraer valores de esta dimensión
             Vector valoresDimension = new Vector(datos.tamanio());
             for (int i = 0; i < datos.tamanio(); i++) {
                 valoresDimension.agregar(datos.obtener(i).getVectorOriginal().obtener(dim));
             }
 
-            // Normalizar valores - O(n)
-            Vector valoresNormalizados = normalizacion.normalizar(valoresDimension);
+            // Detectar si la columna es constante (todos valores iguales)
+            boolean esConstante = esColumnaConstante(valoresDimension);
+
+            // Normalizar valores
+            Vector valoresNormalizados;
+            if (esConstante) {
+                // Si es constante, dejar todos en 0
+                valoresNormalizados = new Vector(datos.tamanio());
+                for (int i = 0; i < datos.tamanio(); i++) {
+                    valoresNormalizados.agregar(0.0);
+                }
+            } else {
+                valoresNormalizados = normalizacion.normalizar(valoresDimension);
+            }
 
             // Obtener peso para esta dimensión
             double peso = (pesos != null && dim < pesos.length) ? pesos[dim] : 1.0;
 
-            // Actualizar datos con valores normalizados y ponderados - O(n)
+            // Actualizar datos con valores normalizados y ponderados
             for (int i = 0; i < datos.tamanio(); i++) {
                 Dato dato = datos.obtener(i);
 
@@ -112,6 +121,26 @@ public class AlgoritmoClustering {
             }
         }
     }
+
+
+    /**
+     * Verifica si una columna tiene todos sus valores iguales
+     */
+    private boolean esColumnaConstante(Vector valores) {
+        if (valores.tamanio() == 0) return true;
+
+        double primerValor = valores.obtener(0);
+        double tolerancia = 1e-10;
+
+        for (int i = 1; i < valores.tamanio(); i++) {
+            if (Math.abs(valores.obtener(i) - primerValor) > tolerancia) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
 
     // Crea matriz de distancias simétrica (triángulo superior) O(n^2 · m)
     // O(n^2 · m), simétrica
