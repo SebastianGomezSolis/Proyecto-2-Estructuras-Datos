@@ -4,92 +4,47 @@ import java.util.NoSuchElementException;
 
 /**
  * Lista enlazada simple genérica.
- * - Inserción al final en O(1) gracias a 'cola'.
- * - Corrige eliminación del último nodo actualizando 'cola'.
- * - Implementa SOLO tus interfaces personalizadas: Iterable/Iterador.
+ * Inserta al final rápido usando 'cola'.
+ * Implementa interfaces propias Iterable/Iterador.
  */
 public class Lista<T> implements Iterable<T> {
 
-    private NodoSimple<T> cabeza;
-    private NodoSimple<T> cola;   // puntero a la cola para agregar en O(1)
-    private int tamanio;
+    private NodoSimple<T> cabeza; // primer nodo
+    private NodoSimple<T> cola;   // último nodo (para agregar rápido)
+    private int tamanio;          // cuántos elementos hay
 
     public Lista() {
-        this.cabeza = null;
-        this.cola = null;
-        this.tamanio = 0;
+        this.cabeza = null; // lista vacía
+        this.cola = null;   // sin último
+        this.tamanio = 0;   // tamaño 0
     }
 
-    // Agregar al final en O(1)
+    // Agrega al final en O(1)
     public void agregar(T elemento) {
-        NodoSimple<T> nuevo = new NodoSimple<>(elemento);
-        if (cabeza == null) {
-            cabeza = nuevo;
-            cola = nuevo;
+        NodoSimple<T> nuevo = new NodoSimple<>(elemento); // crea nodo
+        if (cabeza == null) {       // si está vacía
+            cabeza = nuevo;         // cabeza apunta al nuevo
+            cola = nuevo;           // cola también
         } else {
-            cola.setSiguiente(nuevo);
-            cola = nuevo;
+            cola.setSiguiente(nuevo); // enlaza al final
+            cola = nuevo;             // mueve la cola
         }
-        tamanio++;
+        tamanio++; // aumenta el tamaño
     }
 
+    // Devuelve el elemento en 'indice'
     public T obtener(int indice) {
-        validarIndice(indice);
-        NodoSimple<T> actual = cabeza;
+        validarIndice(indice);          // chequea rango
+        NodoSimple<T> actual = cabeza;  // arranca en cabeza
         for (int i = 0; i < indice; i++) {
-            actual = actual.getSiguiente();
+            actual = actual.getSiguiente(); // avanza
         }
-        return actual.getDato();
+        return actual.getDato(); // regresa el dato
     }
 
-    public T eliminar(int indice) {
-        validarIndice(indice);
-        T eliminado;
+    public int tamanio() { return tamanio; }                               // cuántos hay
 
-        if (indice == 0) {
-            eliminado = cabeza.getDato();
-            cabeza = cabeza.getSiguiente();
-            if (cabeza == null) cola = null; // lista quedó vacía
-        } else {
-            NodoSimple<T> anterior = cabeza;
-            for (int i = 0; i < indice - 1; i++) {
-                anterior = anterior.getSiguiente();
-            }
-            NodoSimple<T> rem = anterior.getSiguiente();
-            eliminado = rem.getDato();
-            NodoSimple<T> sig = rem.getSiguiente();
-            anterior.setSiguiente(sig);
-            if (sig == null) cola = anterior; // si borré el último, actualizo cola
-        }
-        tamanio--;
-        return eliminado;
-    }
-
-    public int buscar(T elemento) {
-        NodoSimple<T> actual = cabeza;
-        int idx = 0;
-        while (actual != null) {
-            T dato = actual.getDato();
-            if ((dato == null && elemento == null) ||
-                    (dato != null && dato.equals(elemento))) {
-                return idx;
-            }
-            actual = actual.getSiguiente();
-            idx++;
-        }
-        return -1;
-    }
-
-    public boolean contiene(T elemento) { return buscar(elemento) != -1; }
-    public int tamanio() { return tamanio; }
-    public boolean estaVacia() { return tamanio == 0; }
-
-    public void limpiar() {
-        cabeza = null;
-        cola = null;
-        tamanio = 0;
-    }
-
+    // Valida que el índice esté dentro del tamaño
     private void validarIndice(int indice) {
         if (indice < 0 || indice >= tamanio) {
             throw new IndexOutOfBoundsException(
@@ -98,19 +53,18 @@ public class Lista<T> implements Iterable<T> {
         }
     }
 
-    /* ===== Iterador personalizado ===== */
-
-    @Override // <- este @Override es válido porque implementas TU Iterable<T>
+    @Override // implementa Iterable<T>
     public Iterador<T> iterador() {
-        return new ListaIterador();
+        return new ListaIterador(); // devuelve el iterador
     }
 
+    // Recorre la lista nodo por nodo
     private class ListaIterador implements Iterador<T> {
-        private NodoSimple<T> actual = cabeza;
+        private NodoSimple<T> actual = cabeza; // empieza en cabeza
 
         @Override
         public boolean tieneSiguiente() {
-            return actual != null;
+            return actual != null; // hay más si no es null
         }
 
         @Override
@@ -118,9 +72,9 @@ public class Lista<T> implements Iterable<T> {
             if (actual == null) {
                 throw new NoSuchElementException("No hay más elementos en la lista");
             }
-            T dato = actual.getDato();
-            actual = actual.getSiguiente();
-            return dato;
+            T dato = actual.getDato();            // toma el dato
+            actual = actual.getSiguiente();       // avanza
+            return dato;                          // retorna el dato
         }
     }
 }

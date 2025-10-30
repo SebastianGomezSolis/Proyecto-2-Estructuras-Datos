@@ -17,7 +17,7 @@
       xmlns:fx="http://javafx.com/fxml/1"
       fx:controller="com.sistema.proyecto2estructurasdatos.controller.VentanaController">
 
-    <!-- Header -->
+
     <HBox alignment="CENTER_LEFT" spacing="20"
           style="-fx-background-color: linear-gradient(to right, #00897b, #26c6da); -fx-padding: 15 25; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.2), 6, 0, 0, 2);">
         <VBox spacing="2">
@@ -46,9 +46,9 @@
                            style="-fx-progress-color: #ffffff;" />
     </HBox>
 
-    <!-- Content -->
+
     <HBox spacing="15" style="-fx-padding: 15;" VBox.vgrow="ALWAYS">
-        <!-- Canvas Area - MÁS PEQUEÑO -->
+
         <VBox spacing="10" prefWidth="850" maxWidth="850"
               style="-fx-background-color: white; -fx-padding: 15; -fx-border-radius: 10; -fx-background-radius: 10; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.12), 8, 0, 0, 2);"
               HBox.hgrow="SOMETIMES">
@@ -59,9 +59,9 @@
             </ScrollPane>
         </VBox>
 
-        <!-- Right Panel - MÁS ANCHO -->
+
         <VBox prefWidth="400" minWidth="380" maxWidth="450" spacing="12" HBox.hgrow="ALWAYS">
-            <!-- Configuration Panel -->
+
             <VBox spacing="10"
                   style="-fx-background-color: white; -fx-padding: 18; -fx-border-radius: 10; -fx-background-radius: 10; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.12), 8, 0, 0, 2);">
                 <Label style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #00897b;"
@@ -87,7 +87,7 @@
                 </VBox>
             </VBox>
 
-            <!-- Variables Panel - CON MÁS ESPACIO -->
+
             <VBox spacing="8"
                   style="-fx-background-color: white; -fx-padding: 18; -fx-border-radius: 10; -fx-background-radius: 10; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.12), 8, 0, 0, 2);"
                   VBox.vgrow="ALWAYS">
@@ -102,7 +102,7 @@
         </VBox>
     </HBox>
 
-    <!-- Footer -->
+
     <HBox alignment="CENTER_LEFT" spacing="15"
           style="-fx-background-color: #00695c; -fx-padding: 8 25;">
         <Label style="-fx-font-size: 9px; -fx-text-fill: #b2dfdb;"

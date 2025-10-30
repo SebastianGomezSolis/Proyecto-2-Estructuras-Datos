@@ -1,24 +1,27 @@
 package com.sistema.proyecto2estructurasdatos.modelo;
 
-// Clase que representa un registro de datos para el clustering
-// Contiene tanto el vector original como el vector procesado
+// Representa una fila de datos usado en el clustering
+// Guarda el nombre, los valores originales, los valores normalizados y su posición
 public class Dato {
-    private String etiqueta;
-    private Vector vectorOriginal;
-    private Vector vectorProcesado;
-    private int indice;
+    private String etiqueta;         // Nombre o identificación del dato
+    private Vector vectorOriginal;   // Valores originales del registro
+    private Vector vectorProcesado;  // Valores después de aplicar normalización
+    private int indice;              // Posición o número de fila dentro del dataset
 
+    // Crea un dato con su etiqueta, vector y posición
     public Dato(String etiqueta, Vector vectorOriginal, int indice) {
         this.etiqueta = etiqueta;
         this.vectorOriginal = vectorOriginal;
-        this.vectorProcesado = null; // Se establecerá después del procesamiento
+        this.vectorProcesado = null; // Aún no se ha procesado
         this.indice = indice;
     }
 
-    // Getters y Setters
+    // Métodos para acceder o modificar sus atributos
     public String getEtiqueta() { return etiqueta; }
     public Vector getVectorOriginal() { return vectorOriginal; }
     public Vector getVectorProcesado() { return vectorProcesado; }
     public int getIndice() { return indice; }
-    public void setVectorProcesado(Vector vectorProcesado) { this.vectorProcesado = vectorProcesado; }
+    public void setVectorProcesado(Vector vectorProcesado) {           // Asigna los valores procesados
+        this.vectorProcesado = vectorProcesado;
+    }
 }

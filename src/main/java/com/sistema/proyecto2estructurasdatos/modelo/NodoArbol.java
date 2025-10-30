@@ -2,33 +2,33 @@ package com.sistema.proyecto2estructurasdatos.modelo;
 
 // Nodo del arbol
 public class NodoArbol {
-    private String etiqueta;
-    private Vector datos;
-    private NodoArbol izquierdo;
-    private NodoArbol derecho;
-    private double distancia;
-    private int indiceOriginal;
+    private String etiqueta;        // Nombre del nodo (dato o "Cluster")
+    private Vector datos;           // Valores del elemento (si es hoja)
+    private NodoArbol izquierdo;    // Hijo izquierdo
+    private NodoArbol derecho;      // Hijo derecho
+    private double distancia;       // “Altura” donde se unió este nodo
+    private int indiceOriginal;     // Posición original en el dataset (si aplica)
 
     public NodoArbol(String etiqueta, Vector datos, int indiceOriginal) {
-        this.etiqueta = etiqueta;
-        this.datos = datos;
-        this.izquierdo = null;
-        this.derecho = null;
-        this.distancia = 0.0;
-        this.indiceOriginal = indiceOriginal;
+        this.etiqueta = etiqueta;       // Guarda el nombre
+        this.datos = datos;             // Guarda los valores del dato
+        this.izquierdo = null;          // sin hijos
+        this.derecho = null;            // sin hijos
+        this.distancia = 0.0;           // Hoja: sin distancia de unión
+        this.indiceOriginal = indiceOriginal; // Recuerda su fila original
     }
 
     public NodoArbol(NodoArbol izquierdo, NodoArbol derecho, double distancia) {
-        this.etiqueta = "Cluster";
-        this.datos = null;
-        this.izquierdo = izquierdo;
-        this.derecho = derecho;
-        this.distancia = distancia;
-        this.indiceOriginal = -1;
+        this.etiqueta = " ";
+        this.datos = null;          // Un cluster no guarda un vector directo
+        this.izquierdo = izquierdo; // Enlace al hijo izquierdo
+        this.derecho = derecho;     // Enlace al hijo derecho
+        this.distancia = distancia; // Nivel donde se juntaron sus hijos
+        this.indiceOriginal = -1;   // No corresponde a una fila específica
     }
 
     public boolean esHoja() {
-        return izquierdo == null && derecho == null;
+        return izquierdo == null && derecho == null; // Es hoja si no tiene hijos
     }
 
     // Getters y setters
@@ -39,5 +39,4 @@ public class NodoArbol {
     public double getDistancia() { return distancia; }
     public void setDatos(Vector datos) { this.datos = datos; }
     public void setDistancia(double distancia) { this.distancia = distancia; }
-
 }

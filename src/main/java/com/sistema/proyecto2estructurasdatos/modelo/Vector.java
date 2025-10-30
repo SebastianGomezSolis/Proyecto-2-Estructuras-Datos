@@ -1,118 +1,122 @@
 package com.sistema.proyecto2estructurasdatos.modelo;
 
-// Estructura de datos Vector personalizada
-// Implementa un array dinámico con operaciones matemáticas vectoriales
+// Vector dinámico con operaciones básicas (suma de productos y longitud)
 public class Vector implements Iterable<Double> {
-    private Double[] datos;
-    private int tamanio;
-    private int capacidad;
-    private static final int CAPACIDAD_INICIAL = 10;
-    private static final int FACTOR_CRECIMIENTO = 2;
+    private Double[] datos;                 // Aquí guardamos los números
+    private int tamanio;                    // Cuántos números hay realmente
+    private int capacidad;                  // Espacio total disponible ahora
+    private static final int CAPACIDAD_INICIAL = 10; // Tamaño de inicio
+    private static final int FACTOR_CRECIMIENTO = 2; // Cuando se llena, crece al doble
 
+    // Constructor sin parámetros
     public Vector() {
-        this.capacidad = CAPACIDAD_INICIAL;
-        this.datos = new Double[capacidad];
-        this.tamanio = 0;
+        this.capacidad = CAPACIDAD_INICIAL;   // Arranca con la capacidad base
+        this.datos = new Double[capacidad];   // Crea el arreglo interno
+        this.tamanio = 0;                     // Aún no hay elementos
     }
 
+    // Constructor con capacidad elegida
     public Vector(int capacidadInicial) {
-        if (capacidadInicial <= 0) {
+        if (capacidadInicial <= 0) {                                  // Validación simple
             throw new IllegalArgumentException("La capacidad inicial debe ser mayor a 0");
         }
-        this.capacidad = capacidadInicial;
-        this.datos = new Double[capacidad];
-        this.tamanio = 0;
+        this.capacidad = capacidadInicial;                            // Guarda la capacidad
+        this.datos = new Double[capacidad];                           // Crea el arreglo interno
+        this.tamanio = 0;                                             // Aún vacío
     }
 
-
+    // Constructor a partir de un arreglo de double
     public Vector(double[] valores) {
-        if (valores == null) {
+        if (valores == null) {                                        // No aceptar null
             throw new IllegalArgumentException("El array de valores no puede ser null");
         }
-        this.capacidad = valores.length;
-        this.tamanio = valores.length;
-        this.datos = new Double[capacidad];
+        this.capacidad = valores.length;                              // Capacidad exacta al inicio
+        this.tamanio = valores.length;                                // Tamaño igual a la entrada
+        this.datos = new Double[capacidad];                           // Crea el arreglo interno
 
-        // Copiar valores
-        for (int i = 0; i < valores.length; i++) {
-            this.datos[i] = valores[i];
+        // Copiar valores uno a uno
+        for (int i = 0; i < valores.length; i++) {                    // Recorre
+            this.datos[i] = valores[i];                               // Copia cada número
         }
     }
 
+    // Agrega un número al final
     public void agregar(double valor) {
-        // Si el array está lleno, redimensionar
+        // Si no cabe, agrandamos primero
         if (tamanio == capacidad) {
-            redimensionar();
+            redimensionar();                                          // Duplicar espacio
         }
-        datos[tamanio++] = valor;
+        datos[tamanio++] = valor;                                     // Guarda y aumenta el tamaño
     }
 
-    // Redimensionar el array interno cuando se llena
+    // Aumentar el arreglo interno cuando se llena
     private void redimensionar() {
-        capacidad *= FACTOR_CRECIMIENTO;
-        Double[] nuevoArray = new Double[capacidad];
+        capacidad *= FACTOR_CRECIMIENTO;                              // Nueva capacidad (x2)
+        Double[] nuevoArray = new Double[capacidad];                  // Arreglo más grande
 
-        // Copiar elementos existentes
-        for (int i = 0; i < tamanio; i++) {
-            nuevoArray[i] = datos[i];
+        // Copiar los elementos existentes
+        for (int i = 0; i < tamanio; i++) {                           // Recorre los actuales
+            nuevoArray[i] = datos[i];                                 // Pasa cada valor
         }
 
-        datos = nuevoArray;
+        datos = nuevoArray;                                           // Reemplaza el arreglo viejo
     }
 
+    // Obtener un valor por su posición
     public double obtener(int indice) {
-        if (indice < 0 || indice >= tamanio) {
+        if (indice < 0 || indice >= tamanio) {                        // Validación de rango
             throw new IndexOutOfBoundsException("Índice " + indice + " fuera de rango [0, " + tamanio + ")");
         }
-        return datos[indice];
+        return datos[indice];                                         // Devuelve el valor pedido
     }
 
+    // Cambiar un valor por su posición
     public void establecer(int indice, double valor) {
-        if (indice < 0 || indice >= tamanio) {
+        if (indice < 0 || indice >= tamanio) {                        // Validación de rango
             throw new IndexOutOfBoundsException("Índice " + indice + " fuera de rango [0, " + tamanio + ")");
         }
-        datos[indice] = valor;
+        datos[indice] = valor;                                        // Reemplaza el valor
     }
 
+    // Devuelve cuántos elementos hay
     public int tamanio() { return tamanio; }
 
+    // Suma de multiplicaciones elemento a elemento (producto punto)
     public double productoPunto(Vector otro) {
-        if (otro == null) {
+        if (otro == null) {                                           // No aceptar null
             throw new IllegalArgumentException("El vector no puede ser null");
         }
-        if (this.tamanio != otro.tamanio) {
+        if (this.tamanio != otro.tamanio) {                           // Deben tener mismo tamaño
             throw new IllegalArgumentException(
                     "Los vectores deben tener el mismo tamaño: " + this.tamanio + " vs " + otro.tamanio
             );
         }
 
-        double suma = 0.0;
-        for (int i = 0; i < tamanio; i++) {
-            suma += this.datos[i] * otro.datos[i];
+        double suma = 0.0;                                            // Acumula el resultado
+        for (int i = 0; i < tamanio; i++) {                           // Recorre cada posición
+            suma += this.datos[i] * otro.datos[i];                    // Multiplica y suma
         }
-        return suma;
+        return suma;                                                  // Devuelve el total
     }
 
-    // Calcular la magnitud (norma euclidiana) del vector
+    // Longitud del vector (norma euclidiana)
     public double magnitud() {
-        double sumaCuadrados = 0.0;
-        for (int i = 0; i < tamanio; i++) {
-            sumaCuadrados += datos[i] * datos[i];
+        double sumaCuadrados = 0.0;                                   // Acumula cuadrados
+        for (int i = 0; i < tamanio; i++) {                           // Recorre cada valor
+            sumaCuadrados += datos[i] * datos[i];                     // Cuadrado y suma
         }
-        return Math.sqrt(sumaCuadrados);
+        return Math.sqrt(sumaCuadrados);                              // Raíz cuadrada del total
     }
 
-    // Implementación del patrón Iterator
-    // Permite recorrer el vector con foreach
+    // Permite usar foreach con nuestro vector (usa nuestro Iterador)
     @Override
     public Iterador<Double> iterador() {
-        return new VectorIterator();
+        return new VectorIterator();                                  // Devuelve el iterador
     }
 
-    // Clase interna que implementa Iterator para Vector
-    // Permite recorrer los elementos del vector de forma secuencial
+    // Iterador interno para recorrer el vector
     private class VectorIterator implements Iterador<Double> {
-        private int indiceActual = 0;
+        private int indiceActual = 0;                                  // Empieza en el primer elemento
 
         @Override
         public boolean tieneSiguiente() {
@@ -124,18 +128,7 @@ public class Vector implements Iterable<Double> {
             if (!tieneSiguiente()) {
                 throw new java.util.NoSuchElementException("No hay más elementos en el vector");
             }
-            return datos[indiceActual++];
+            return datos[indiceActual++];                               // retorna y avanza
         }
-    }
-
-    @Override
-    public String toString() {
-        StringBuilder sb = new StringBuilder("[");
-        for (int i = 0; i < tamanio; i++) {
-            sb.append(String.format("%.4f", datos[i]));
-            if (i < tamanio - 1) sb.append(", ");
-        }
-        sb.append("]");
-        return sb.toString();
     }
 }
