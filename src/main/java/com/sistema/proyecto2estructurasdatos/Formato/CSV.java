@@ -16,8 +16,8 @@ public class CSV {
     };
 
     // Columnas cualitativas definidas (se codifican con one-hot)
-    private static final String[] COLUMNAS_CATEGORICAS = {
-            "genres", "original_language", "status"
+    private static final String[] COLUMNAS_CUALITATIVAS= {
+            "genres", "original_language", "status", "director"
     };
 
     // Columnas que se omiten por no aportar al vector (texto libre, ids, etc.)
@@ -138,8 +138,8 @@ public class CSV {
     }
 
     // Verifica si la columna está en la lista de categóricas definidas a prioridad
-    private static boolean esColumnaCategoricaDefinida(String nombreColumna) {
-        for (String col : COLUMNAS_CATEGORICAS)
+    private static boolean esColumnaCualitativaDefinida(String nombreColumna) {
+        for (String col : COLUMNAS_CUALITATIVAS)
             if (col.equalsIgnoreCase(nombreColumna)) return true;
         return false;
     }
@@ -154,7 +154,7 @@ public class CSV {
             esNumerica[col] = true;  // fuerza a numérica
             return;
         }
-        if (esColumnaCategoricaDefinida(nombreColumna)) {
+        if (esColumnaCualitativaDefinida(nombreColumna)) {
             esNumerica[col] = false;                         // marca cualitativa
             construirMapeoOneHot(col, nombreColumna, filas, mapeosOneHot); // genera diccionario
             return;
