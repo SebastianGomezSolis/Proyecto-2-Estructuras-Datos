@@ -1,21 +1,27 @@
-package com.sistema.proyecto2estructurasdatos.Formato; // Carpeta lógica donde está esta clase
+package com.sistema.proyecto2estructurasdatos.Formato;
 
-// Importamos nuestras estructuras y el tipo de dato que guarda cada fila
-import com.sistema.proyecto2estructurasdatos.modelo.Lista; // Nuestra lista simple
-import com.sistema.proyecto2estructurasdatos.modelo.Dato;  // Cada fila del CSV como objeto Dato
+import com.sistema.proyecto2estructurasdatos.modelo.Lista;
+import com.sistema.proyecto2estructurasdatos.modelo.Dato;
 
-// Esta clase guarda el “paquete” con lo que salió al leer un CSV
+/**
+ *   Guarda el resultado al leer un CSV:
+ * - Los datos leídos
+ * - Los nombres de columnas
+ * - Cuántas filas y columnas hay
+ * - Cuáles columnas son numéricas (para evitar normalizar one-hot)
+ */
 public class ResultadoCSV {
     public Lista<Dato> datos;              // Todas las filas leídas del archivo
-    public Lista<String> nombresColumnas;  // Los nombres de cada columna
-    public int numFilas;                   // Cuántas filas hay
-    public int numColumnas;                // Cuántas columnas hay
+    public Lista<String> nombresColumnas;  // Nombres de cada columna
+    public int numFilas;                   // Cantidad de filas
+    public int numColumnas;                // Cantidad de columnas
+    public boolean[] columnasNumericas;    // indica qué columnas son numéricas
 
-    // Al crear el resultado, dejamos listo y vacío
     public ResultadoCSV() {
-        this.datos = new Lista<>();            // Empezamos con una lista de filas vacía
-        this.nombresColumnas = new Lista<>();  // Empezamos con una lista de nombres vacía
-        this.numFilas = 0;                     // Aún no contamos filas
-        this.numColumnas = 0;                  // Aún no contamos columnas
+        this.datos = new Lista<>();
+        this.nombresColumnas = new Lista<>();
+        this.numFilas = 0;
+        this.numColumnas = 0;
+        this.columnasNumericas = null;
     }
 }

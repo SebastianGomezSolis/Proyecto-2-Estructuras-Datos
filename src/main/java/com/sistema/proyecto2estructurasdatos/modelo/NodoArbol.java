@@ -39,4 +39,7 @@ public class NodoArbol {
     public double getDistancia() { return distancia; }
     public void setDatos(Vector datos) { this.datos = datos; }
     public void setDistancia(double distancia) { this.distancia = distancia; }
+    public void setIzquierdo(NodoArbol izq) { this.izquierdo = izq;}
+    public void setDerecho(NodoArbol der) { this.derecho = der;}
+
 }

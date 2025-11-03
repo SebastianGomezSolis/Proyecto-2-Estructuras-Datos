@@ -1,376 +1,303 @@
 package com.sistema.proyecto2estructurasdatos.Formato;
 
-import com.sistema.proyecto2estructurasdatos.modelo.Dato;
-import com.sistema.proyecto2estructurasdatos.modelo.Lista;
-import com.sistema.proyecto2estructurasdatos.modelo.Vector;
-import java.io.BufferedReader;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.util.HashMap;
-import java.util.Map;
+import com.sistema.proyecto2estructurasdatos.modelo.*;
+import java.io.*;
 
 /**
- * Esta clase se encarga de leer archivos CSV (archivos de Excel con comas).
- * Lo especial es que convierte los datos en un formato que las computadoras entienden mejor:
- * - Si encuentra números, los deja como están
- * - Si encuentra palabras o categorías (como "rojo", "azul"), las convierte en unos y ceros
+ * Leer y procesar archivos CSV.
+ * Convierte los datos del CSV en objetos Dato con vectores numéricos,
+ * aplica one-hot para variables cualitativas.
  */
-
 public class CSV {
 
-    // Este es el metodo principal que lee todo el archivo CSV
-    public static ResultadoCSV leer(String rutaArchivo) throws IOException {
-        // Creamos una cajita donde guardaremos todo lo que leamos
-        ResultadoCSV resultado = new ResultadoCSV();
+    // Columnas numéricas
+    private static final String[] COLUMNAS_NUMERICAS = {
+            "budget", "popularity", "revenue", "runtime", "vote_average", "vote_count"
+    };
 
-        // Abrimos el archivo para leerlo, asegurándonos de que lea bien los acentos (UTF-8)
+    // Columnas cualitativas definidas (se codifican con one-hot)
+    private static final String[] COLUMNAS_CATEGORICAS = {
+            "genres", "original_language", "status"
+    };
+
+    // Columnas que se omiten por no aportar al vector (texto libre, ids, etc.)
+    private static final String[] COLUMNAS_IGNORAR = {
+            "homepage", "id", "keywords", "overview", "production_companies",
+            "production_countries", "spoken_languages", "crew", "cast", "tagline",
+            "release_date", "index"
+    };
+
+    public static ResultadoCSV leer(String rutaArchivo) throws IOException {
+
+        ResultadoCSV resultado = new ResultadoCSV(); // contenedor de salida
+
+        // Lector del archivo con UTF-8 para soportar caracteres especiales
         BufferedReader br = new BufferedReader(
                 new InputStreamReader(new FileInputStream(rutaArchivo), "UTF-8")
         );
 
-        // === LEER LA PRIMERA LÍNEA (LOS TÍTULOS DE LAS COLUMNAS) ===
-
-        // Leemos la primera línea del archivo que tiene los nombres de las columnas
-        String header = br.readLine();
-
-        // Si está vacía, hay un problema
+        String header = br.readLine(); // primera línea: nombres de columnas
         if (header == null) {
             br.close();
             throw new IOException("El archivo CSV está vacío.");
         }
 
-        // si los archivos tienen un carácter invisible al inicio, lo quitamos
-        if (header.length() > 0 && header.charAt(0) == '\uFEFF') {
-            header = header.substring(1);
-        }
-
-        // Separamos los títulos de las columnas (están separados por comas)
+        // Parseo del encabezado a una lista de nombres de columnas
         Lista<String> columnasHeader = separarLineaCSV(header);
+        resultado.nombresColumnas = columnasHeader;          // guarda nombres
+        resultado.numColumnas = columnasHeader.tamanio();    // total de columnas
 
-        // Guardamos los nombres de las columnas y cuántas hay
-        resultado.nombresColumnas = columnasHeader;
-        resultado.numColumnas = columnasHeader.tamanio();
-
-        // Buscamos si hay una columna especial que sirva como "nombre" o "etiqueta"
-        // (por ejemplo: "título", "nombre", "id")
+        // Intenta localizar una columna que sirva como etiqueta legible
         int idxEtiqueta = buscarColumnaEtiqueta(columnasHeader);
 
-        // === PASO 1: LEER TODAS LAS FILAS DEL ARCHIVO ===
-
-        // Creamos una lista para guardar temporalmente todas las filas
+        // Lee todas las filas restantes del archivo
         Lista<Lista<String>> todasLasFilas = new Lista<>();
         String linea;
-
-        // Leemos línea por línea hasta que se acabe el archivo
         while ((linea = br.readLine()) != null) {
-            // Separamos cada línea en sus columnas
-            Lista<String> columnas = separarLineaCSV(linea);
-
-            // Solo guardamos la fila si tiene suficientes columnas
-            if (columnas.tamanio() >= resultado.numColumnas) {
-                todasLasFilas.agregar(columnas);
-            }
+            Lista<String> columnas = separarLineaCSV(linea); // separa por campos respetando comillas
+            if (columnas.tamanio() >= resultado.numColumnas) // valida tamaño consistente con header
+                todasLasFilas.agregar(columnas);              // acumula fila válida
         }
-        br.close(); // Cerramos el archivo porque ya terminamos de leer
+        br.close(); // cierra el archivo
 
-        // Si no hay datos, lanzamos un error
-        if (todasLasFilas.tamanio() == 0) {
+        // debe existir al menos una fila de datos
+        if (todasLasFilas.tamanio() == 0)
             throw new IOException("No hay datos en el archivo CSV.");
-        }
 
-        // === PASO 2: AVERIGUAR QUÉ TIPO DE DATOS HAY EN CADA COLUMNA ===
-
-        // Creamos un array que dice si cada columna tiene números (true) o texto (false)
+        //  true = numérica, false = cualitativa/ignorada
         boolean[] esNumerica = new boolean[resultado.numColumnas];
 
-        // Este mapa guarda las conversiones para columnas de texto
-        // Por ejemplo: si una columna tiene "rojo", "azul", "verde"
-        // las convierte en: rojo=0, azul=1, verde=2
-        Map<Integer, Map<String, Integer>> mapeosOneHot = new HashMap<>();
+        // one-hot: por índice de columna, un mapa (texto -> índice)
+        HashMapa<Integer, HashMapa<String, Integer>> mapeosOneHot = new HashMapa<>();
 
-        // Revisamos cada columna una por una
+        // Clasifica columnas (numérica, categórica conocida, inferida o ignorada)
         for (int col = 0; col < resultado.numColumnas; col++) {
-            // Si es la columna de etiquetas, la saltamos
             if (col == idxEtiqueta) {
-                esNumerica[col] = false;
+                esNumerica[col] = false;  // la etiqueta no se vectoriza
+                continue;                 // salta a la siguiente columna
+            }
+            String nombreColumna = columnasHeader.obtener(col);
+            if (debeIgnorarColumna(nombreColumna)) {
+                esNumerica[col] = false;  // se marcará como no vectorizable
                 continue;
             }
-
-            // Analizamos la columna para ver qué tipo de datos tiene
-            AnalisisColumna analisis = analizarColumna(col, todasLasFilas);
-            esNumerica[col] = analisis.esNumerica;
-
-            // Si la columna tiene texto y encontramos diferentes categorías,
-            // guardamos el mapeo para convertirlas a números después
-            if (!analisis.esNumerica && analisis.categoriasUnicas.size() > 0) {
-                mapeosOneHot.put(col, analisis.categoriasUnicas);
-            }
+            // Analiza por listas predefinidas e inferencia por muestreo
+            analizarColumnaYActualizar(col, nombreColumna, todasLasFilas, esNumerica, mapeosOneHot);
         }
 
-        // === PASO 3: CONVERTIR TODAS LAS FILAS A VECTORES NUMÉRICOS ===
-
-        int contador = 0; // Llevamos la cuenta de cuántas filas procesamos
-
-        // Recorremos cada fila que leímos
+        // Recorre filas y construye el vector numérico final de cada una
+        int contador = 0; // índice incremental para etiquetar filas sin nombre
         for (int f = 0; f < todasLasFilas.tamanio(); f++) {
             Lista<String> columnas = todasLasFilas.obtener(f);
+            Vector vector = new Vector(); // vector numérico que se llenará en orden
 
-            // Creamos un vector (lista de números) para esta fila
-            Vector vector = new Vector();
-
-            // Procesamos cada columna de la fila
             for (int col = 0; col < resultado.numColumnas; col++) {
-                // Saltamos la columna de etiquetas
-                if (col == idxEtiqueta) continue;
-
-                String valor = columnas.obtener(col);
+                if (col == idxEtiqueta) continue; // no incluir la etiqueta en el vector
+                String nombreColumna = columnasHeader.obtener(col);
+                if (debeIgnorarColumna(nombreColumna)) continue; // descarta columnas ignoradas
+                String valor = columnas.obtener(col); // texto crudo de la celda
 
                 if (esNumerica[col]) {
-                    // Si la columna es numérica, simplemente agregamos el número
+                    // Convierte valor de texto a double (manejo seguro de vacíos y "null")
                     vector.agregar(convertirANumero(valor));
                 } else {
-                    // Si la columna es de texto, aplicamos "one-hot encoding"
-                    // Esto significa: convertir "rojo" en [1, 0, 0], "azul" en [0, 1, 0], etc.
-
-                    Map<String, Integer> mapeo = mapeosOneHot.get(col);
-                    if (mapeo != null) {
-                        // Limpiamos el valor (quitamos espacios)
-                        String valorLimpio = (valor != null) ? valor.trim() : "";
-
-                        // Buscamos a qué número corresponde este valor
-                        Integer indiceCategoria = mapeo.get(valorLimpio);
-
-                        // Creamos un conjunto de ceros con un 1 en la posición correcta
-                        // Ejemplo: si "azul" es la categoría #1 de 3, ponemos [0, 1, 0]
-                        for (int i = 0; i < mapeo.size(); i++) {
-                            vector.agregar((indiceCategoria != null && indiceCategoria == i) ? 1.0 : 0.0);
-                        }
-                    }
+                    // Si hay mapeo cualitativo, aplica one-hot y concatena al vector
+                    HashMapa<String, Integer> mapeo = mapeosOneHot.obtener(col);
+                    if (mapeo != null)
+                        aplicarOneHot(valor, mapeo, vector, nombreColumna);
                 }
             }
 
-            // Obtenemos la etiqueta (nombre) de esta fila
+            // Determina etiqueta (si hay columna candidata) o genera "fila_i"
             String etiqueta = obtenerEtiqueta(columnas, idxEtiqueta, contador);
 
-            // Creamos un objeto Dato con la etiqueta, el vector y el número de fila
+            // Crea el Dato de salida con su etiqueta, vector y posición original
             Dato d = new Dato(etiqueta, vector, contador);
-            resultado.datos.agregar(d);
-            contador++;
+            resultado.datos.agregar(d); // agrega al contenedor final
+            contador++;                 // avanza el índice de fila
         }
 
-        // Guardamos cuántas filas procesamos en total
-        resultado.numFilas = contador;
-        return resultado; // Devolvemos lo que procesamos
+        // Registra metadatos finales del procesamiento
+        resultado.numFilas = contador;           // total de filas procesadas
+        resultado.columnasNumericas = esNumerica; // expone qué columnas fueron numéricas
+        return resultado;                        // retorna el conjunto listo
     }
 
-    /**
-     * Esta clase pequeña guarda el resultado de analizar una columna:
-     * - Si es numérica o no
-     * - Las categorías únicas que encontró (para columnas de texto)
-     */
-    private static class AnalisisColumna {
-        boolean esNumerica; // ¿Es una columna de números?
-        Map<String, Integer> categoriasUnicas; // Las diferentes palabras encontradas
+    // Devuelve true si la columna está en la lista a ignorar (no se vectoriza)
+    private static boolean debeIgnorarColumna(String nombreColumna) {
+        for (String col : COLUMNAS_IGNORAR)
+            if (col.equalsIgnoreCase(nombreColumna)) return true; // coincide por nombre
+        return false; // no está listada para ignorar
+    }
 
-        AnalisisColumna(boolean esNumerica, Map<String, Integer> categorias) {
-            this.esNumerica = esNumerica;
-            this.categoriasUnicas = categorias;
+    // Verifica si la columna está en la lista de numéricas definidas a prioridad
+    private static boolean esColumnaNumericaDefinida(String nombreColumna) {
+        for (String col : COLUMNAS_NUMERICAS)
+            if (col.equalsIgnoreCase(nombreColumna)) return true;
+        return false;
+    }
+
+    // Verifica si la columna está en la lista de categóricas definidas a prioridad
+    private static boolean esColumnaCategoricaDefinida(String nombreColumna) {
+        for (String col : COLUMNAS_CATEGORICAS)
+            if (col.equalsIgnoreCase(nombreColumna)) return true;
+        return false;
+    }
+
+    // Decide si una columna es numérica o cualitativa; si es categórica, crea su mapeo one-hot
+    private static void analizarColumnaYActualizar(
+            int col, String nombreColumna, Lista<Lista<String>> filas,
+            boolean[] esNumerica, HashMapa<Integer, HashMapa<String, Integer>> mapeosOneHot) {
+
+        // Preferencia por configuración explícita
+        if (esColumnaNumericaDefinida(nombreColumna)) {
+            esNumerica[col] = true;  // fuerza a numérica
+            return;
         }
-    }
+        if (esColumnaCategoricaDefinida(nombreColumna)) {
+            esNumerica[col] = false;                         // marca cualitativa
+            construirMapeoOneHot(col, nombreColumna, filas, mapeosOneHot); // genera diccionario
+            return;
+        }
 
-    /**
-     * Este método revisa una columna completa para decidir si tiene números o texto,
-     * y si es texto, crea una lista de todas las palabras diferentes que encuentra
-     */
-    private static AnalisisColumna analizarColumna(int col, Lista<Lista<String>> filas) {
-        // Contadores para llevar la cuenta
-        int numericos = 0; // ¿Cuántos valores numéricos encontramos?
-        int textos = 0;    // ¿Cuántos valores de texto encontramos?
-
-        // Aquí guardamos las diferentes categorías de texto que encontramos
-        Map<String, Integer> categorias = new HashMap<>();
-        int indiceCat = 0; // Número que le asignamos a cada categoría nueva
-
-        // No revisamos TODAS las filas para ser más rápidos, solo las primeras 200
-        int maxAnalizar = Math.min(200, filas.tamanio());
-
-        // Revisamos cada fila (hasta 200)
+        // Inferencia automática por muestreo de hasta 100 filas (rápido y representativo)
+        int numericos = 0, textos = 0;
+        int maxAnalizar = Math.min(100, filas.tamanio()); // límite superior de muestras
         for (int f = 0; f < maxAnalizar; f++) {
-            Lista<String> fila = filas.obtener(f);
+            String valor = filas.obtener(f).obtener(col); // valor crudo de la columna
+            if (esNumerico(valor)) numericos++; else textos++; // clasifica valor
+        }
 
-            // Si la fila no tiene esta columna, la saltamos
-            if (col >= fila.tamanio()) continue;
+        // Se considera numérica si domina y supera un umbral (80% de las muestras)
+        boolean colEsNumerica = (numericos > textos && numericos > maxAnalizar * 0.8);
+        esNumerica[col] = colEsNumerica; // marca resultado de la inferencia
+        if (!colEsNumerica) construirMapeoOneHot(col, nombreColumna, filas, mapeosOneHot); // prepara one-hot
+    }
 
-            String valor = fila.obtener(col);
+    // Construye el diccionario texto->índice para la columna categórica (one-hot)
+    private static void construirMapeoOneHot(
+            int col, String nombreColumna, Lista<Lista<String>> filas,
+            HashMapa<Integer, HashMapa<String, Integer>> mapeosOneHot) {
 
-            // Si está vacía, la saltamos
-            if (valor == null || valor.trim().isEmpty()) continue;
+        HashMapa<String, Integer> categorias = new HashMapa<>(); // diccionario de categorías
+        int indiceCat = 0;                                       // índice incremental
+        boolean esGeneros = nombreColumna.equalsIgnoreCase("genres"); // caso especial: múltiples etiquetas
 
-            valor = valor.trim(); // Quitamos espacios al inicio y final
+        // Recorre todas las filas para descubrir categorías distintas
+        for (int f = 0; f < filas.tamanio(); f++) {
+            String valor = filas.obtener(f).obtener(col); // texto de la celda
+            if (valor == null || valor.trim().isEmpty()) continue; // ignora vacíos
 
-            // Verificamos si es un número
-            if (esNumerico(valor)) {
-                numericos++; // Aumentamos el contador de números
+            if (esGeneros) {
+                // "genres": permite varios tokens separados por espacios
+                String[] generos = valor.trim().split("\\s+");
+                for (String genero : generos) {
+                    genero = genero.trim();
+                    if (!genero.isEmpty() && !categorias.contieneLlave(genero))
+                        categorias.insertar(genero, indiceCat++); // registra nueva categoría
+                }
             } else {
-                textos++; // Aumentamos el contador de texto
-
-                // Si es una palabra nueva que no habíamos visto, la agregamos
-                if (!categorias.containsKey(valor)) {
-                    categorias.put(valor, indiceCat++);
-                }
+                // Categórica simple: se descartan numéricos para no mezclar tipos
+                valor = valor.trim();
+                if (!esNumerico(valor) && !categorias.contieneLlave(valor))
+                    categorias.insertar(valor, indiceCat++); // registra nueva categoría
             }
         }
 
-        // Decidimos: si más del 80% son números, consideramos que es columna numérica
-        boolean esNumerica = (numericos > textos && numericos > maxAnalizar * 0.8);
-
-        // Si decidimos que es columna de texto, revisamos TODAS las filas restantes
-        // para asegurarnos de no perdernos ninguna categoría
-        if (!esNumerica && textos > 0) {
-            for (int f = maxAnalizar; f < filas.tamanio(); f++) {
-                Lista<String> fila = filas.obtener(f);
-                if (col >= fila.tamanio()) continue;
-
-                String valor = fila.obtener(col);
-                if (valor != null && !valor.trim().isEmpty()) {
-                    valor = valor.trim();
-
-                    // Si encontramos una categoría nueva, la agregamos
-                    if (!esNumerico(valor) && !categorias.containsKey(valor)) {
-                        categorias.put(valor, indiceCat++);
-                    }
-                }
-            }
-        }
-
-        // Devolvemos el resultado del análisis
-        return new AnalisisColumna(esNumerica, categorias);
+        // Si se detectaron categorías, asocia el mapeo con la columna
+        if (categorias.tamano() > 0)
+            mapeosOneHot.insertar(col, categorias);
     }
 
-    /**
-     * Este método verifica si un texto es realmente un número
-     * (por ejemplo: "123.45" es número, pero "hola" no lo es)
-     */
+    // Añade al vector el bloque one-hot correspondiente al valor de la celda
+    private static void aplicarOneHot(String valor, HashMapa<String, Integer> mapeo, Vector vector, String nombreColumna) {
+        int k = mapeo.tamano();         // dimensión del bloque one-hot
+        double[] oneHot = new double[k];
+        for (int i = 0; i < k; i++) oneHot[i] = 0.0; // inicializa en ceros
+
+        if (valor != null && !valor.trim().isEmpty()) {
+            boolean esGeneros = nombreColumna.equalsIgnoreCase("genres");
+            if (esGeneros) {
+                // Activa varias posiciones si hay múltiples etiquetas
+                String[] valores = valor.trim().split("\\s+");
+                for (String val : valores) {
+                    Integer indice = mapeo.obtener(val.trim()); // consulta índice de categoría
+                    if (indice != null && indice < k) oneHot[indice] = 1.0; // activa posición
+                }
+            } else {
+                // Activa una sola posición para categoría única
+                Integer indice = mapeo.obtener(valor.trim());
+                if (indice != null && indice < k) oneHot[indice] = 1.0;
+            }
+        }
+
+        // Concatena el bloque one-hot al final del vector de la fila
+        for (int i = 0; i < k; i++) vector.agregar(oneHot[i]);
+    }
+
+    // Determina si una cadena representa un número (double) de forma segura
     private static boolean esNumerico(String valor) {
-        // Si está vacío, no es número
-        if (valor == null || valor.trim().isEmpty()) return false;
-
+        if (valor == null || valor.trim().isEmpty()) return false; // vacío no es número
         try {
-            // Intentamos convertirlo a número
-            Double.parseDouble(valor.trim());
-            return true; // Si funcionó, ¡es número!
+            Double.parseDouble(valor.trim()); //  parsea
+            return true;
         } catch (NumberFormatException e) {
-            return false; // Si falló, no es número
+            return false; // si falla el parseo, no es numérico
         }
     }
 
-    /**
-     * Convierte un texto a número.
-     * Si no puede convertirlo, devuelve 0
-     */
+    // Convierte cadena a double; devuelve 0.0 ante vacío, "null" o formato inválido
     private static double convertirANumero(String valor) {
-        // Si está vacío o dice "null", devolvemos 0
-        if (valor == null || valor.trim().isEmpty() || valor.equalsIgnoreCase("null")) {
-            return 0.0;
-        }
-
+        if (valor == null || valor.trim().isEmpty() || valor.equalsIgnoreCase("null")) return 0.0;
         try {
-            // Intentamos convertir el texto a número
-            return Double.parseDouble(valor.trim());
+            return Double.parseDouble(valor.trim()); // parseo directo
         } catch (NumberFormatException e) {
-            // Si no se puede, devolvemos 0
             return 0.0;
         }
     }
 
-    /**
-     * Busca si hay una columna que sirva como "etiqueta" o "nombre"
-     * Busca nombres comunes como "title", "name", "nombre", "id", etc.
-     */
+    // Intenta localizar una columna adecuada como etiqueta (nombres comunes)
     private static int buscarColumnaEtiqueta(Lista<String> columnas) {
-        // Lista de nombres típicos para columnas de etiquetas
-        String[] posiblesNombres = {"title", "name", "nombre", "id", "label",
-                "original_title", "movie_title"};
-
-        // Revisamos cada posible nombre
-        for (String nombre : posiblesNombres) {
-            // Revisamos cada columna del archivo
-            for (int i = 0; i < columnas.tamanio(); i++) {
-                String col = columnas.obtener(i);
-
-                // Si coincide con algún nombre típico, ¡la encontramos!
-                if (col != null && col.trim().equalsIgnoreCase(nombre)) {
-                    return i; // Devolvemos la posición de la columna
-                }
-            }
-        }
-
-        // Si no encontramos ninguna columna de etiquetas, devolvemos -1
-        return -1;
+        String[] posiblesNombres = {"title", "nombre", "id", "original_title"};
+        for (String nombre : posiblesNombres)
+            for (int i = 0; i < columnas.tamanio(); i++)
+                if (columnas.obtener(i).equalsIgnoreCase(nombre))
+                    return i; // devuelve el índice de la primera coincidencia
+        return -1; // no se encontró columna de etiqueta
     }
 
-    /**
-     * Obtiene la etiqueta (nombre) de una fila.
-     * Si hay una columna especial de etiquetas, usa esa.
-     * Si no, genera un nombre automático como "fila_0", "fila_1", etc.
-     */
+    // Obtiene etiqueta a mostrar por fila; si no hay, genera "fila_<n>"
     private static String obtenerEtiqueta(Lista<String> columnas, int idxEtiqueta, int contador) {
-        // Si encontramos una columna de etiquetas y tiene valor
         if (idxEtiqueta != -1 && idxEtiqueta < columnas.tamanio()) {
             String etiqueta = columnas.obtener(idxEtiqueta);
-
-            // Si no está vacía, la usamos
-            if (etiqueta != null && !etiqueta.trim().isEmpty()) {
-                return etiqueta.trim();
-            }
+            if (etiqueta != null && !etiqueta.trim().isEmpty())
+                return etiqueta.trim(); // etiqueta válida
         }
-
-        // Si no hay etiqueta, generamos una automática
-        return "fila_" + contador;
+        return "fila_" + contador; // nombre por defecto
     }
 
-    /**
-     * Este método separa una línea CSV en sus columnas individuales.
-     * Es complicado porque los valores pueden estar entre comillas
-     * y las comillas pueden contener comas (por eso no podemos simplemente separar por comas)
-     */
+    // Parser de una línea CSV que respeta campos entrecomillados y comas internas
     private static Lista<String> separarLineaCSV(String line) {
-        // Aquí guardaremos las columnas que vamos encontrando
         Lista<String> resultado = new Lista<>();
+        StringBuilder actual = new StringBuilder(); // acumulador del campo actual
+        boolean dentroDeComillas = false;          //  dentro o fuera de comillas
 
-        // Aquí vamos construyendo cada columna, letra por letra
-        StringBuilder actual = new StringBuilder();
-
-        // Esta variable nos dice si estamos dentro de comillas o no
-        boolean dentroDeComillas = false;
-
-        // Recorremos la línea carácter por carácter
         for (int i = 0; i < line.length(); i++) {
-            char c = line.charAt(i); // El carácter actual
-
+            char c = line.charAt(i);
             if (c == '"') {
-                // Si encontramos comillas dobles (""), significa que es una comilla literal
+                // Manejo de comillas escapadas: ""
                 if (dentroDeComillas && i + 1 < line.length() && line.charAt(i + 1) == '"') {
-                    actual.append('"'); // Agregamos una comilla
-                    i++; // Saltamos la siguiente comilla
-                } else {
-                    // Si es una sola comilla, cambiamos el estado (entramos o salimos de comillas)
-                    dentroDeComillas = !dentroDeComillas;
-                }
+                    actual.append('"'); // añade una comilla al campo
+                    i++;                // salta la comilla siguiente
+                } else dentroDeComillas = !dentroDeComillas; // alterna el estado
             } else if (c == ',' && !dentroDeComillas) {
-                // Si encontramos una coma Y no estamos dentro de comillas,
-                // significa que terminó esta columna
-                resultado.agregar(actual.toString());
-                actual.setLength(0); // Limpiamos para empezar la siguiente columna
-            } else {
-                // Cualquier otro carácter lo agregamos a la columna actual
-                actual.append(c);
-            }
+                // Fin de campo solo si no estamos dentro de comillas
+                resultado.agregar(actual.toString()); // guarda el campo
+                actual.setLength(0);                  // reinicia el acumulador
+            } else actual.append(c); // agrega carácter normal al campo
         }
-
-        // No olvidamos agregar la última columna
+        // Agrega el último campo que queda en el acumulador
         resultado.agregar(actual.toString());
-        return resultado;
+        return resultado; // devuelve la lista de columnas
     }
 }

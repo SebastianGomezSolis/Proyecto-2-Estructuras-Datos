@@ -2,11 +2,14 @@ package com.sistema.proyecto2estructurasdatos.Formato;
 
 import com.sistema.proyecto2estructurasdatos.modelo.ArbolBinario;
 import com.sistema.proyecto2estructurasdatos.modelo.NodoArbol;
+import com.sistema.proyecto2estructurasdatos.modelo.HashMapa;
 
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.*;
 import java.util.Locale;
+import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 /**
  * Esta clase se encarga de exportar "dendrogramas" (árboles de agrupamiento) a archivos JSON.
@@ -22,9 +25,9 @@ public class JSON {
     /**
      * Este es el método principal que toma un árbol y lo guarda en un archivo JSON.
      *
-     * @param arbol       El árbol que queremos guardar
-     * @param rutaArchivo Dónde queremos guardar el archivo (ejemplo: "resultado.json")
-     * @throws IOException Si algo sale mal al intentar escribir el archivo
+     * arbol       El árbol que queremos guardar
+     * rutaArchivo Dónde queremos guardar el archivo (ejemplo: "resultado.json")
+     * IOException Si algo sale mal al intentar escribir el archivo
      */
     public static void exportar(ArbolBinario arbol, String rutaArchivo) throws IOException {
         // Creamos un StringBuilder, que es como un cuaderno donde vamos escribiendo el JSON
@@ -37,7 +40,7 @@ public class JSON {
             // Los numeramos de izquierda a derecha: 1, 2, 3, 4...
 
             // Este mapa guardará: cada hoja → su número
-            Map<NodoArbol, Integer> leafIds = new HashMap<>();
+            HashMapa<NodoArbol, Integer> leafIds = new HashMapa<>();
 
             // Usamos un array de un elemento como "truco" para poder modificar
             // el contador dentro de métodos recursivos
@@ -64,14 +67,14 @@ public class JSON {
      * yendo de izquierda a derecha.
      */
     private static void asignarIdsHojas(NodoArbol nodo,
-                                        Map<NodoArbol, Integer> leafIds,
+                                        HashMapa<NodoArbol, Integer> leafIds,
                                         int[] counter) {
         // Si llegamos a un nodo vacío, nos devolvemos
         if (nodo == null) return;
 
         // Si es una hoja (no tiene hijos), le asignamos un número
         if (nodo.esHoja()) {
-            leafIds.put(nodo, counter[0]++); // Le damos el número actual y lo aumentamos
+            leafIds.insertar(nodo, counter[0]++); // Le damos el número actual y lo aumentamos
             return;
         }
 
@@ -95,7 +98,7 @@ public class JSON {
      *   "c": [ hijo_izq, hijo_der ]      ← Los hijos (vacío [] si es hoja)
      * }
      */
-    private static void construirJSON(NodoArbol nodo, StringBuilder json, int nivel, Map<NodoArbol, Integer> leafIds) {
+    private static void construirJSON(NodoArbol nodo, StringBuilder json, int nivel, HashMapa<NodoArbol, Integer> leafIds) {
         // Si el nodo es nulo, escribimos "null" y listo
         if (nodo == null) {
             json.append("null");
@@ -170,10 +173,10 @@ public class JSON {
      *
      * Por ejemplo, si una rama tiene las hojas 1, 2 y 3, su etiqueta será "(1,2,3)"
      */
-    private static String etiquetaTupla(NodoArbol nodo, Map<NodoArbol, Integer> leafIds) {
+    private static String etiquetaTupla(NodoArbol nodo, HashMapa<NodoArbol, Integer> leafIds) {
         // Si es una hoja, solo ponemos su número
         if (nodo.esHoja()) {
-            Integer id = leafIds.get(nodo);
+            Integer id = leafIds.obtener(nodo);
             return "(" + (id == null ? "?" : id) + ")";
         }
 
@@ -186,7 +189,7 @@ public class JSON {
         StringBuilder sb = new StringBuilder("(");
         int k = 0;
         for (int id : ids) {
-            if (k++ > 0) sb.append(","); // Agregamos coma entre números
+            if (k++ > 0) sb.append(",");
             sb.append(id);
         }
         sb.append(")");
@@ -196,13 +199,13 @@ public class JSON {
     /**
      * Este método recolecta todos los IDs de las hojas que están debajo de un nodo.
      */
-    private static void recolectarIdsHojas(NodoArbol nodo, Map<NodoArbol, Integer> leafIds, Set<Integer> acc) {
+    private static void recolectarIdsHojas(NodoArbol nodo, HashMapa<NodoArbol, Integer> leafIds, Set<Integer> acc) {
         // Si no hay nodo, no hay nada que hacer
         if (nodo == null) return;
 
         // Si llegamos a una hoja, agregamos su ID a la colección
         if (nodo.esHoja()) {
-            Integer id = leafIds.get(nodo);
+            Integer id = leafIds.obtener(nodo);
             if (id != null) acc.add(id);
             return;
         }
@@ -242,10 +245,10 @@ public class JSON {
         if (texto == null) return "";
 
         // Hacemos los reemplazos necesarios
-        return texto.replace("\\", "\\\\")      // \ → \\
-                .replace("\"", "\\\"")           // " → \"
-                .replace("\n", "\\n")            // salto de línea → \n
-                .replace("\r", "\\r")            // retorno de carro → \r
-                .replace("\t", "\\t");           // tabulación → \t
+        return texto.replace("\\", "\\\\")
+                .replace("\"", "\\\"")
+                .replace("\n", "\\n")
+                .replace("\r", "\\r")
+                .replace("\t", "\\t");
     }
 }

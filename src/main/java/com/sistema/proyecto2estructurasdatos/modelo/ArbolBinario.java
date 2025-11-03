@@ -8,10 +8,13 @@ public class ArbolBinario {
     public ArbolBinario(NodoArbol raiz) {
         this.raiz = raiz;
     }
+    public ArbolBinario() {
+        this.raiz = null;
+    }
 
     // Devuelve la raíz del árbol
     public NodoArbol getRaiz() {
         return raiz;
     }
-
+    public void setRaiz(NodoArbol raiz) { this.raiz = raiz;}
 }
