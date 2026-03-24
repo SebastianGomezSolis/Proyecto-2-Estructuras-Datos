@@ -8,6 +8,13 @@ Sistema de escritorio desarrollado en Java con JavaFX para generar dendrogramas 
 > **Universidad Nacional** – Escuela de Informática
 
 ---
+## 👥 Autores
+
+- Sebastián Gómez Solís - [@SebastianGomezSolis](https://github.com/SebastianGomezSolis)
+- Cinthya Barahona Guevara - [@aashh16](https://github.com/aashh16)
+- Aslhi Gutierrez Romero - [@BCinthya](https://github.com/BCinthya)
+
+---
 
 ## 📋 Tabla de contenidos
 
